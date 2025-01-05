@@ -70,6 +70,7 @@ def generate_true_or_false_question(
     return {
         'prompt': tfq_text,
         'caption': tfq_answer,
+        'question_type': 'TrueFalse',
         'preset_answer': preset_answer_boolean,
         'src_prompt': question_text,
         'src_answer': correct_answer,

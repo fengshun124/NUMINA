@@ -1,5 +1,9 @@
 import json
 import os
+from contextlib import contextmanager
+from multiprocessing.synchronize import Lock as ProcessLock
+from threading import Lock as ThreadLock
+from typing import Union, Optional
 
 import click
 from tqdm import tqdm
@@ -9,8 +13,8 @@ def parse_llm_response(response: str, fields: list[str]) -> dict:
     """Parse the LLM response as a JSON object"""
     try:
         response_dict = json.loads(response)
-    except json.JSONDecodeError:
-        raise ValueError(f'Invalid response: {response}')
+    except json.JSONDecodeError as e:
+        raise ValueError(f'Invalid response: {response} as {e}')
 
     if not all(field in response_dict for field in fields):
         raise ValueError(f'Missing field(s) in response: {fields}')
@@ -35,20 +39,44 @@ def enum_json_files(file_path: str, skip_confirm: bool) -> list[str]:
         return question_jsons
 
 
-def export_json_file(data_dict: dict, target_json_file: str):
+@contextmanager
+def acquire_lock(lock: Optional[Union[ThreadLock, ProcessLock]]):
+    """Acquire the lock if available"""
+    if lock:
+        lock.acquire()
+    try:
+        yield
+    finally:
+        if lock:
+            lock.release()
+
+
+def export_json_file(
+        data_dict: dict, target_json_file: str,
+        lock: Optional[Union[ThreadLock, ProcessLock]] = None
+) -> None:
     """Export the JSON file incrementally"""
-    # if JSON file does not exist or empty, export the data as JSON file
-    if not os.path.isfile(target_json_file) or os.path.getsize(target_json_file) == 0:
-        with open(target_json_file, 'w', encoding='utf-8') as f:
-            json.dump([data_dict], f, indent=4)
-    else:
-        with open(target_json_file, 'r+', encoding='utf-8') as f:
-            f.seek(0)
-            json_data = json.load(f)
-            json_data.append(data_dict)
-            f.seek(0)
-            json.dump(json_data, f, indent=4)
-            f.truncate()
+    os.makedirs(os.path.dirname(target_json_file), exist_ok=True)
+    with acquire_lock(lock):
+        # if JSON file does not exist or empty, export the data as JSON file
+        if not os.path.isfile(target_json_file) or os.path.getsize(target_json_file) == 0:
+            with open(target_json_file, 'w', encoding='utf-8') as f:
+                json.dump([data_dict], f, indent=4)
+        # if JSON file exists and not empty, append the data to the JSON file
+        else:
+            try:
+                with open(target_json_file, 'r+', encoding='utf-8') as f:
+                    f.seek(0)
+                    json_data = json.load(f)
+                    if not isinstance(json_data, list):
+                        raise ValueError(f'Invalid JSON format in {target_json_file}')
+                    # append the data to the JSON file
+                    json_data.append(data_dict)
+                    f.seek(0)
+                    json.dump(json_data, f, indent=4)
+                    f.truncate()
+            except json.JSONDecodeError as e:
+                raise ValueError(f'Invalid JSON format in {target_json_file}: {e}')
 
 
 def load_json_file(file_path: str) -> dict:
@@ -98,11 +126,17 @@ def process_question_jsons(
             print(f'Skipped {question_json} as no valid data found.')
             continue
 
-        export_question_json_file = os.path.join(export_dir, f'{export_prefix}-{os.path.basename(question_json)}')
-        if not validate_export_json_file(export_question_json_file):
+        result_json_file = os.path.join(
+            export_dir, f'{export_prefix}-{os.path.basename(question_json)}')
+        if not validate_export_json_file(result_json_file):
             continue
+        # JSON file for failed attempts
+        failed_attempt_json_file = os.path.join(
+            export_dir, f'failed-{export_prefix}-{os.path.basename(question_json)}')
+        if os.path.exists(failed_attempt_json_file):
+            os.remove(failed_attempt_json_file)
 
-        success_count = 0
+        fail_attempts = 0
         print(f'Generating {rewrite_type} for {os.path.basename(question_json)}...')
         with tqdm(total=len(question_dicts), desc=f'Processing ', ascii=' >=', unit='Q') as pbar:
             for idx, question_dict in enumerate(question_dicts):
@@ -120,14 +154,19 @@ def process_question_jsons(
                             'scene_id': question_dict['scene_id'],
                             'obj_id': question_dict['obj_id'],
                             **rewrite_question_dict
-                        }, export_question_json_file)
+                        }, result_json_file)
                         break
                     except ValueError as e:
                         print(f'Attempt {attempt + 1}/{max_retry} failed: {e}')
                 else:
+                    export_json_file(question_dict, failed_attempt_json_file)
+                    fail_attempts += 1
                     print(f'Failed to generate {rewrite_type} for question {idx + 1} '
                           f'in {question_json} after {max_retry} attempts.')
-                pbar.update(1)
-                success_count += 1
 
-        print(f'Generated {success_count} {rewrite_type} for {question_json}.')
+                pbar.update(1)
+
+        print(f'Generated {len(question_dicts) - fail_attempts} {rewrite_type} for {question_json}.')
+        if fail_attempts > 0:
+            print(f'Failed to generate {fail_attempts} {rewrite_type} for {question_json}. '
+                  f'Refer to {failed_attempt_json_file} for details.')

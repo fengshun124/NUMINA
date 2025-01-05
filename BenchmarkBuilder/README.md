@@ -1,6 +1,6 @@
 # Benchmark Builder
 
-To use LLM with the OpenAI API, set up a .env file with the OpenAI API key and base URL. 
+To use LLM with the OpenAI API, set up a .env file in [utils](utils) with the OpenAI API key and base URL.
 Follow these steps:
 
 ```bash

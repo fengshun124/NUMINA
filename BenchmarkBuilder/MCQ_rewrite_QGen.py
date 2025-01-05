@@ -28,21 +28,19 @@ def generate_multiple_choice_question(
     llm_prompt = str(
         f'Please rewrite the provided question into a multiple-choice format '
         f'with 1 correct answer and {int(n_option - 1)} alternative incorrect answers. '
-        f'Ensure the revised question remains concise and aligned with the original query. '
         f'The main body of the question should NOT include the full text of the correct answer. '
-        f'Please make sure that the question reflects clearly the information of the original correct answer. '
+        f'Ensure that the rewrite question, options and answer and logical and concise. '
+        f'The correct answer should be placed in the provided correct option label. '
         f'When generating alternative options, ensure they are: \n'
         f'- Of the same type (e.g., if the correct answer is a noun, the alternatives should also be nouns). \n'
         f'- Distinguishable from each other by object or entity, rather than just using synonyms. \n'
         f'- Plausible and realistic to avoid making it too easy to guess the correct answer. \n'
         f'The correct answer should be placed in the provided correct option label. '
-        f'Separate the question from the options with a space, '
-        f'and format the options as "A) option_a B) option_b", etc. '
-        f'Please reply only with a JSON object containing "question" and "answer" fields, '
-        f'without any additional text or explanations. \n'
-        f'"question" should include the multiple-choice question followed by the formatted options. \n'
-        f'"answer" should contain only the letter corresponding to the correct option (e.g., "A"). \n'
-        f'Ensure that the rewrite text is clear and concise, maintaining the original meaning of the question. \n'
+        f'Separate the question from the options with a space and format the options as "A) option_a B) option_b", etc. '
+        f'Reply only with a JSON object containing the following fields: \n'
+        f'"question" - includes the multiple-choice question followed by the formatted options. \n'
+        f'"answer" - contains the letter corresponding to the correct option (e.g., "A"). \n'
+        f'Do not include any additional instructions or explanations other than what is described above. \n'
         f'The correct option should be {preset_answer_label}. \n'
         f'Question: "{question_text}".\nCorrect answer: "{cleanup_correct_answer}".',
     )
@@ -50,33 +48,35 @@ def generate_multiple_choice_question(
 
     # validate if response can be parsed as a JSON object
     response_dict = parse_llm_response(response, ['question', 'answer'])
-    mcq_text = response_dict['question'].strip()
-    mcq_correct_answer_label = response_dict['answer'].strip().upper()
+    mcq_full_text = response_dict['question'].strip()
+    mcq_simple_answer_label = response_dict['answer'].strip()
 
-    # validate if the correct option is consistent with the preset correct option
-    if mcq_correct_answer_label != preset_answer_label:
-        raise ValueError(f'Possible invalid reply: "{mcq_correct_answer_label}" from '
-                         f'"{mcq_text}" does not match the preset correct answer "{preset_answer_label}"')
+    if mcq_simple_answer_label.lower() != preset_answer_label.lower():
+        raise ValueError(f'Possibly Invalid reply: '
+                         f'"{mcq_simple_answer_label}" does not match the preset correct answer "{preset_answer_label}"')
 
-    option_pattern = re.compile(r'[A-Z]\)\s*(.*?)\s*(?=\s*[A-Z]\)|$)')
-    mcq_options = option_pattern.findall(mcq_text)
+    options_pattern = re.compile(r'([A-Z])\)\s*(.*?)\s*(?=[A-Z]\)|$)')
+    mcq_options = {k: v for k, v in options_pattern.findall(mcq_full_text)}
     # validate if exactly given number of options are generated
-    if len(mcq_options) != n_option:
-        raise ValueError(f'Possible invalid reply: expect exactly {n_option} options from '
-                         f'"{mcq_text}". Extracted {len(mcq_options)} options: {mcq_options}')
-    # validate if the correct option is consistent with the preset correct option
-    if cleanup_correct_answer.lower() not in [option.lower() for option in mcq_options]:
-        raise ValueError(f'Possible invalid reply: '
-                         f'{mcq_options} from "{mcq_text}" does not contain "{cleanup_correct_answer}"')
+    if (not mcq_options) or (len(mcq_options) != n_option):
+        raise ValueError(f'Possibly Invalid reply: '
+                         f'expected {n_option} options, found {len(mcq_options)}: {mcq_options} in "{mcq_full_text}"')
 
-    mcq_main_text = option_pattern.sub('', mcq_text).strip()
-    if correct_answer.lower() in mcq_main_text.lower():
-        raise ValueError(f'Possible invalid reply: '
-                         f'"{mcq_main_text}" from "{mcq_text}" contains "{cleanup_correct_answer}"')
+    # validate if the correct option is present in the options
+    if cleanup_correct_answer.lower() != mcq_options.get(preset_answer_label).lower().strip('.'):
+        raise ValueError(f'Possibly Invalid reply: '
+                         f'correct answer "{cleanup_correct_answer}" not found in the options: {mcq_options}')
+
+    # validate if the question text does NOT contain the full text of the correct answer
+    mcq_question_text = options_pattern.sub('', mcq_full_text).strip()
+    if cleanup_correct_answer.lower() in mcq_question_text.lower():
+        raise ValueError(f'Possibly Invalid reply: '
+                         f'{mcq_question_text} contains the full text of the correct answer "{cleanup_correct_answer}"')
 
     return {
-        'prompt': mcq_text,
-        'caption': mcq_correct_answer_label,
+        'prompt': mcq_full_text,
+        'caption': mcq_simple_answer_label,
+        'question_type': 'MultipleChoice',
         'src_prompt': question_text,
         'src_caption': correct_answer,
     }
