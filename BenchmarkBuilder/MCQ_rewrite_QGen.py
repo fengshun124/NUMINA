@@ -49,11 +49,11 @@ def generate_multiple_choice_question(
     # validate if response can be parsed as a JSON object
     response_dict = parse_llm_response(response, ['question', 'answer'])
     mcq_full_text = response_dict['question'].strip()
-    mcq_simple_answer_label = response_dict['answer'].strip()
+    mcq_answer_label = response_dict['answer'].strip()
 
-    if mcq_simple_answer_label.lower() != preset_answer_label.lower():
+    if mcq_answer_label.lower() != preset_answer_label.lower():
         raise ValueError(f'Possibly Invalid reply: '
-                         f'"{mcq_simple_answer_label}" does not match the preset correct answer "{preset_answer_label}"')
+                         f'"{mcq_answer_label}" does not match the preset correct answer "{preset_answer_label}"')
 
     options_pattern = re.compile(r'([A-Z])\)\s*(.*?)\s*(?=[A-Z]\)|$)')
     mcq_options = {k: v for k, v in options_pattern.findall(mcq_full_text)}
@@ -75,7 +75,8 @@ def generate_multiple_choice_question(
 
     return {
         'prompt': mcq_full_text,
-        'caption': mcq_simple_answer_label,
+        'caption': mcq_answer_label,
+        'CoT_caption': f'{{"answer": "{mcq_answer_label}"}}',
         'question_type': 'MultipleChoice',
         'src_prompt': question_text,
         'src_caption': correct_answer,
@@ -83,16 +84,25 @@ def generate_multiple_choice_question(
 
 
 @click.command()
-@click.option('--llm_model', default='qwen2.5:72b', type=str)
-@click.option('--llm_backend', default='ollama', type=click.Choice(['ollama', 'openai']))
+@click.option('--llm_model', default='qwen2.5:72b', type=str,
+              help='The LLM model used for rewriting the questions')
+@click.option('--llm_backend', default='ollama', type=click.Choice(['ollama', 'openai']),
+              help='The backend service for the LLM model. Choose between Ollama (default) or OpenAI')
 @click.option('--questions', type=click.Path(readable=True, dir_okay=True),
-              prompt='Enter the input directory or file path')
-@click.option('--n_option', default=3, type=click.IntRange(2, None))
-@click.option('--max_retry', default=5, type=click.IntRange(1, None))
+              prompt='Enter the input directory or file path',
+              help='The directory or file containing the question JSONs')
+@click.option('--n_option', default=3, type=click.IntRange(2, None),
+              help='Number of options for the multiple-choice question')
+@click.option('--max_retry', default=5, type=click.IntRange(1, None),
+              help='Maximum number of retries for each question when failed to rewrite')
 @click.option('--export_dir', default='./output/',
-              type=click.Path(file_okay=False, writable=True))
-@click.option('--export_prefix', default='MCQ', type=str)
-@click.option('-s', '--skip_confirm', is_flag=True)
+              type=click.Path(file_okay=False, writable=True),
+              help='The directory to export the rewritten question JSONs')
+@click.option('--export_prefix', default='MCQ', type=str,
+              help='The prefix for the exported rewritten question JSONs. Default is "MCQ" '
+                   '(e.g., question_A.json -> MCQ-question_A.json)')
+@click.option('-s', '--skip_confirm', is_flag=True,
+              help='Skip the confirmation prompt before processing the question JSONs')
 def main(
         llm_model, llm_backend,
         questions,

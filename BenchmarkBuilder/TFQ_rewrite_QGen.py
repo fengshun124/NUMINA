@@ -70,6 +70,7 @@ def generate_true_or_false_question(
     return {
         'prompt': tfq_text,
         'caption': tfq_answer,
+        'CoT_caption': f'{{"answer": "{tfq_answer}"}}',
         'question_type': 'TrueFalse',
         'preset_answer': preset_answer_boolean,
         'src_prompt': question_text,
@@ -78,15 +79,23 @@ def generate_true_or_false_question(
 
 
 @click.command()
-@click.option('--llm_model', default='qwen2.5:72b', type=str)
-@click.option('--llm_backend', default='ollama', type=click.Choice(['ollama', 'openai']))
+@click.option('--llm_model', default='qwen2.5:72b', type=str,
+              help='The LLM model used for rewriting the questions')
+@click.option('--llm_backend', default='ollama', type=click.Choice(['ollama', 'openai']),
+              help='The backend service for the LLM model. Choose between Ollama (default) or OpenAI')
 @click.option('--questions', type=click.Path(readable=True, dir_okay=True),
-              prompt='Enter the input directory or file path')
-@click.option('--max_retry', default=5, type=click.IntRange(1, None))
+              prompt='Enter the input directory or file path',
+              help='The directory or file containing the question JSONs')
+@click.option('--max_retry', default=5, type=click.IntRange(1, None),
+              help='Maximum number of retries for each question when failed to rewrite')
 @click.option('--export_dir', default='./output/',
-              type=click.Path(file_okay=False, writable=True))
-@click.option('--export_prefix', default='TFQ', type=str)
-@click.option('-s', '--skip_confirm', is_flag=True)
+              type=click.Path(file_okay=False, writable=True),
+              help='The directory to export the rewritten question JSONs')
+@click.option('--export_prefix', default='MCQ', type=str,
+              help='The prefix for the exported rewritten question JSONs. Default is "MCQ" '
+                   '(e.g., question_A.json -> MCQ-question_A.json)')
+@click.option('-s', '--skip_confirm', is_flag=True,
+              help='Skip the confirmation prompt before processing the question JSONs')
 def main(
         llm_model, llm_backend,
         questions,
