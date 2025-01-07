@@ -3,7 +3,7 @@ from joblib import Parallel
 
 
 # This snippet is taken from https://gist.github.com/tsvikas/5f859a484e53d4ef93400751d0a116de
-# It is a modified version of joblib.Parallel that present the progress of the parallel execution using tqdm
+# It is a modified version of joblib.Parallel that presents the progress of the parallel execution using tqdm.
 class ParallelTqdm(Parallel):
     """joblib.Parallel, but with a tqdm progressbar
 

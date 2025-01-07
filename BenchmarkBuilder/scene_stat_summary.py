@@ -1,5 +1,6 @@
 import json
-import os.path
+import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, List
@@ -10,12 +11,13 @@ from joblib import delayed
 from plyfile import PlyData
 from scipy.spatial import distance, ConvexHull
 
-from utils.misc import export_json_file
-from utils.parallel_proc import ParallelTqdm
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.io import export_dict_as_json_file
+from utils.parallel import ParallelTqdm
 
 
 @dataclass
-class SceneInstance:
+class SceneInstanceMetric:
     object_id: str
     label: str
     points: np.ndarray
@@ -52,7 +54,7 @@ class SceneInstance:
 
 
 class ScanNetSceneAnalyzer:
-    def __init__(self, scene_dir: str):
+    def __init__(self, scene_dir: str) -> None:
         self.scene_dir = Path(scene_dir).absolute()
         self.scene_id = self.scene_dir.name
         # validate if the scene directory exists
@@ -63,7 +65,8 @@ class ScanNetSceneAnalyzer:
     def _init_scene_files(self) -> None:
         self.ply_path = self.scene_dir / f'{self.scene_id}_vh_clean_2.ply'
         self.seg_json_path = self.scene_dir / f'{self.scene_id}_vh_clean_2.0.010000.segs.json'
-        self.agg_json_path = self.scene_dir / f'{self.scene_id}_vh_clean.aggregation.json'
+        # self.agg_json_path = self.scene_dir / f'{self.scene_id}_vh_clean.aggregation.json'
+        self.agg_json_path = self.scene_dir / f'{self.scene_id}.aggregation.json'
 
         for scene_file_path in [self.ply_path, self.seg_json_path, self.agg_json_path]:
             if not scene_file_path.exists():
@@ -74,7 +77,7 @@ class ScanNetSceneAnalyzer:
         vertices = PlyData.read(str(self.ply_path))['vertex']
         return np.vstack([vertices['x'], vertices['y'], vertices['z']]).T
 
-    def _init_instance(self) -> List[SceneInstance]:
+    def _init_instance(self) -> List[SceneInstanceMetric]:
         """Convert point cloud into instances"""
         points = self._load_point_cloud()
 
@@ -88,7 +91,7 @@ class ScanNetSceneAnalyzer:
         for group in agg_data['segGroups']:
             idx_mask = np.isin(seg_indices, group['segments'])
             if np.any(idx_mask):
-                instance = SceneInstance(
+                instance = SceneInstanceMetric(
                     object_id=group['objectId'],
                     label=group['label'],
                     points=points[idx_mask]
@@ -99,7 +102,7 @@ class ScanNetSceneAnalyzer:
         return instances
 
     @staticmethod
-    def _calc_pairwise_distances(instances: List[SceneInstance]) -> dict[str, float]:
+    def _calc_pairwise_distances(instances: List[SceneInstanceMetric]) -> dict[str, float]:
         """Calculate the pairwise distances between the object centers"""
         distance_dict = {}
         for idx, inst1 in enumerate(instances):
@@ -120,7 +123,7 @@ class ScanNetSceneAnalyzer:
 
         return distance_dict
 
-    def analyze(self):
+    def analyze(self) -> dict[str, any]:
         """Analyze the ScanNet scene and return the scene statistics"""
         instances = self._init_instance()
         pairwise_distance_dict = self._calc_pairwise_distances(instances)
@@ -156,7 +159,7 @@ def process_scene(scene_dir: str, export_dir: str, export_prefix: str) -> None:
         analyzer = ScanNetSceneAnalyzer(scene_dir)
         scene_stats = analyzer.analyze()
 
-        export_json_file(
+        export_dict_as_json_file(
             scene_stats,
             os.path.join(export_dir, f'{export_prefix}-{analyzer.scene_id}.json')
         )
@@ -179,7 +182,7 @@ def process_scene(scene_dir: str, export_dir: str, export_prefix: str) -> None:
               help='Number of parallel jobs to process the scenes')
 @click.option('-s', '--skip_confirm', is_flag=True,
               help='Skip the confirmation prompt before processing the scenes')
-def main(scenes, export_dir, export_prefix, n_jobs, skip_confirm):
+def cli(scenes, export_dir, export_prefix, n_jobs, skip_confirm):
     subfolders = [f.path for f in os.scandir(scenes) if f.is_dir()]
     scene_folders = subfolders if len(subfolders) > 0 else [scenes]
 
@@ -187,7 +190,7 @@ def main(scenes, export_dir, export_prefix, n_jobs, skip_confirm):
           f'{n_jobs if n_jobs != -1 else os.cpu_count()} process(es):\n')
     print('\n'.join(scene_folders if len(scene_folders) <= 6 else
                     scene_folders[:3] + ['...'] + scene_folders[-3:]))
-    print(f'Summarized JSON files will be exported to {export_dir}.')
+    print(f'Summarized JSON files will be exported to {os.path.abspath(export_dir)}.')
     if not skip_confirm and not click.confirm('Proceed?', default=True):
         return
     os.makedirs(export_dir, exist_ok=True)
@@ -205,4 +208,4 @@ def main(scenes, export_dir, export_prefix, n_jobs, skip_confirm):
 
 
 if __name__ == '__main__':
-    main()
+    cli()

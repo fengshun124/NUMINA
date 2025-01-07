@@ -36,7 +36,7 @@ def _chat_openai(request_text: str, llm_model: str = 'gpt-4o-mini-2024-07-18') -
     return _cleanup_response(response.choices[0].message.content)
 
 
-def chat_llm(
+def chat_with_llm(
         request_text: str,
         llm_model: str = 'qwen2.5:72b',
         llm_backend: Literal['ollama', 'openai'] = 'ollama',
