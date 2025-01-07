@@ -127,7 +127,8 @@ class ScanNetSceneAnalyzer:
 
         scene_stats = {
             'scene_id': self.scene_id,
-            'scene_dir': str(self.scene_dir),
+            'num_instances': len(instances),
+            # instance details
             'instances': [
                 {
                     'object_id': instance.object_id,
@@ -140,6 +141,7 @@ class ScanNetSceneAnalyzer:
                 }
                 for instance in instances
             ],
+            # pairwise distances between the surfaces of the instances
             'pairwise_distances': dict(sorted(
                 pairwise_distance_dict.items(),
                 key=lambda item: tuple(map(int, item[0].split('-')))
