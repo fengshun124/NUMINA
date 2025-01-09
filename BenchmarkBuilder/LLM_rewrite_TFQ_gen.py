@@ -131,7 +131,7 @@ class TFQGenerator(LLMBasedQuestionGenerator):
 @click.option('--export_dir', default='./output/',
               type=click.Path(file_okay=False, writable=True),
               help='The directory to export the rewritten question JSONs')
-@click.option('-s', '--skip_confirm', is_flag=False,
+@click.option('-s', '--skip_confirm', is_flag=False, default=False,
               help='Skip the confirmation prompt before processing the question JSONs')
 def cli(
         llm_model: str,
@@ -157,7 +157,7 @@ def cli(
         mcq_generator.rewrite(max_retries=max_retry)
         print(f'Rewritten questions exported to: {mcq_generator.export_dir}')
 
-    print(f'{f" Finished rewriting {len(question_jsons)} question JSON files":=^80}')
+    print(f'{f" Finished rewriting {len(question_jsons)} question JSON files ":=^80}')
 
 
 if __name__ == '__main__':

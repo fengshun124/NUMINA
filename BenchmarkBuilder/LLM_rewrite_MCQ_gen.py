@@ -133,7 +133,7 @@ class MCQGenerator(LLMBasedQuestionGenerator):
               help='The directory or file containing the question JSONs')
 @click.option('--n_option', default=3, type=click.IntRange(2, None),
               help='Number of options for the multiple-choice question')
-@click.option('--evenly_shuffled', is_flag=True,
+@click.option('--evenly_shuffled', is_flag=True, default=False,
               help='Distribute the options evenly across the answer space')
 @click.option('--max_retry', default=5, type=click.IntRange(1, None),
               help='Maximum number of retries for each question when failed to rewrite')
@@ -168,7 +168,7 @@ def cli(
         mcq_generator.rewrite(max_retries=max_retry)
         print(f'Rewritten questions exported to: {mcq_generator.export_dir}')
 
-    print(f'{f" Finished rewriting {len(question_jsons)} question JSON files":=^80}')
+    print(f'{f" Finished rewriting {len(question_jsons)} question JSON files ":=^80}')
 
 
 if __name__ == '__main__':

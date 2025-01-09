@@ -17,6 +17,9 @@ def enum_files(
     else:
         raise ValueError(f'Invalid file path: {os.path.abspath(file_path)}')
 
+    if len(files) == 0:
+        raise ValueError(f'No files with extension "{file_ext}" found in "{file_path}"')
+
     print(f'Found {len(files)} files with extension "{file_ext}" in "{file_path}":')
     print('\n'.join(files) if len(files) < 10 else '\n'.join(files[:5] + ['...'] + files[-5:]))
 

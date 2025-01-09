@@ -191,7 +191,7 @@ def process_scene(scene_dir: str, export_dir: str, export_prefix: str) -> None:
                    '(e.g., scene_001 -> scene_stats-scene_001.json)')
 @click.option('--n_jobs', default=-1, type=click.IntRange(-1, None),
               help='Number of parallel jobs to process the scenes')
-@click.option('-s', '--skip_confirm', is_flag=True,
+@click.option('-s', '--skip_confirm', is_flag=True, default=False,
               help='Skip the confirmation prompt before processing the scenes')
 def cli(scenes, export_dir, export_prefix, n_jobs, skip_confirm):
     subfolders = [f.path for f in os.scandir(scenes) if f.is_dir()]
@@ -217,7 +217,7 @@ def cli(scenes, export_dir, export_prefix, n_jobs, skip_confirm):
         [delayed(process_scene)(scene_dir, export_dir, export_prefix)
          for scene_dir in scene_folders]
     )
-    print(f'{f" Finished processing {len(scene_folders)} ScanNet scene folders":=^80}')
+    print(f'{f" Finished processing {len(scene_folders)} ScanNet scene folders ":=^80}')
 
 
 if __name__ == '__main__':
