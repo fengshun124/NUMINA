@@ -51,10 +51,10 @@ class LLMBasedQuestionGenerator(ABC):
             max_retries: int = 5,
             question_key: str = 'prompt',
             answer_key: str = 'caption',
-            misc_keys=None,
+            meta_keys=None,
     ) -> None:
         """Rewrite the questions using the LLM model"""
-        misc_keys = misc_keys or ['scene_id', 'obj_id']
+        meta_keys = meta_keys or ['scene_id', 'obj_id']
         question_dicts = load_json_file_as_dict(self.question_json_file, is_strict=True)
         print(f'Loaded {len(question_dicts)} questions from: {self.question_json_file}')
         for idx, question_dict in tqdm(
@@ -70,7 +70,7 @@ class LLMBasedQuestionGenerator(ABC):
                     )
                     if self._validate_rewritten_question(rewrite_output_dict):
                         export_dict_as_json_file({
-                            **{key: question_dict[key] for key in misc_keys},
+                            **{key: question_dict[key] for key in meta_keys},
                             **rewrite_output_dict,
                         }, self.rewrite_json_file)
                     break

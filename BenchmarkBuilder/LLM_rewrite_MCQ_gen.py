@@ -155,6 +155,7 @@ def cli(
     """CLI for rewriting the question_json as multiple-choice question_json"""
     question_jsons = enum_files(question_file, '.json', skip_confirm)
 
+    print(f'{f" Start rewriting {len(question_jsons)} question JSON files ":=^80}')
     for question_json in question_jsons:
         mcq_generator = MCQGenerator(
             question_json_file=question_json,

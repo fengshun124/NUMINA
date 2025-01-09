@@ -65,8 +65,8 @@ class ScanNetSceneAnalyzer:
     def _init_scene_files(self) -> None:
         self.ply_path = self.scene_dir / f'{self.scene_id}_vh_clean_2.ply'
         self.seg_json_path = self.scene_dir / f'{self.scene_id}_vh_clean_2.0.010000.segs.json'
-        # self.agg_json_path = self.scene_dir / f'{self.scene_id}_vh_clean.aggregation.json'
-        self.agg_json_path = self.scene_dir / f'{self.scene_id}.aggregation.json'
+        self.agg_json_path = self.scene_dir / f'{self.scene_id}_vh_clean.aggregation.json'
+        # self.agg_json_path = self.scene_dir / f'{self.scene_id}.aggregation.json'
 
         for scene_file_path in [self.ply_path, self.seg_json_path, self.agg_json_path]:
             if not scene_file_path.exists():
@@ -131,7 +131,18 @@ class ScanNetSceneAnalyzer:
         scene_stats = {
             'scene_id': self.scene_id,
             'num_instances': len(instances),
-            # instance details
+            # unique labels in the scene
+            'unique_labels': list(set(inst.label for inst in instances)),
+            # mapping of labels to object IDs
+            'instance_map': {
+                label: [inst.object_id for inst in instances if inst.label == label]
+                for label in set(inst.label for inst in instances)
+            },
+            # mapping of object IDs to labels
+            'object_map': {
+                inst.object_id: inst.label for inst in instances
+            },
+            # instance metrics
             'instances': [
                 {
                     'object_id': instance.object_id,
@@ -187,7 +198,7 @@ def cli(scenes, export_dir, export_prefix, n_jobs, skip_confirm):
     scene_folders = subfolders if len(subfolders) > 0 else [scenes]
 
     print(f'Found {len(scene_folders)} to be processed with '
-          f'{n_jobs if n_jobs != -1 else os.cpu_count()} process(es):\n')
+          f'{n_jobs if n_jobs != -1 else os.cpu_count()} process(es):')
     print('\n'.join(scene_folders if len(scene_folders) <= 6 else
                     scene_folders[:3] + ['...'] + scene_folders[-3:]))
     print(f'Summarized JSON files will be exported to {os.path.abspath(export_dir)}.')
@@ -201,10 +212,12 @@ def cli(scenes, export_dir, export_prefix, n_jobs, skip_confirm):
         for file in os.listdir(export_dir):
             os.remove(os.path.join(export_dir, file))
 
+    print(f'{f" Start processing {len(scene_folders)} ScanNet scene folders ":=^80}')
     ParallelTqdm(n_jobs=n_jobs)(
         [delayed(process_scene)(scene_dir, export_dir, export_prefix)
          for scene_dir in scene_folders]
     )
+    print(f'{f" Finished processing {len(scene_folders)} ScanNet scene folders":=^80}')
 
 
 if __name__ == '__main__':

@@ -1,4 +1,3 @@
-import json
 import os
 import random
 import sys
@@ -146,6 +145,7 @@ def cli(
     """CLI for rewriting the questions as True/False questions"""
     question_jsons = enum_files(question_file, '.json', skip_confirm)
 
+    print(f'{f" Start rewriting {len(question_jsons)} question JSON files ":=^80}')
     for question_json in question_jsons:
         mcq_generator = TFQGenerator(
             question_json_file=question_json,
