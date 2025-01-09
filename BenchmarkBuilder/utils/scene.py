@@ -57,14 +57,17 @@ class SceneData:
             raise ValueError(f'Label "{label}" not found in scene')
         return [inst for inst in self.instances if inst.label == label]
 
-    def get_instance_by_object_id(self, object_id: str) -> Optional[SceneInstance]:
+    def get_instance_by_object_id(self, object_id: str | int) -> Optional[SceneInstance]:
         """Get instance with given object ID"""
+        object_id = self._validate_obj_id_format(object_id)
         if object_id not in self._object_map:
             raise ValueError(f'Object ID "{object_id}" not found in scene')
-        return next((inst for inst in self.instances if inst.object_id == object_id), None)
+        return next((inst for inst in self.instances if inst.object_id == int(object_id)), None)
 
-    def get_pairwise_distance(self, obj_id1: str, obj_id2: str) -> float:
+    def get_pairwise_distance(self, obj_id1: str | int, obj_id2: str | int) -> float:
         """Get distance between two objects"""
+        obj_id1 = self._validate_obj_id_format(obj_id1)
+        obj_id2 = self._validate_obj_id_format(obj_id2)
         key = self._validate_distance_key(obj_id1, obj_id2)
         if key not in self._pairwise_distances:
             raise ValueError(f'No distance found between objects {obj_id1} and {obj_id2}')
@@ -72,12 +75,13 @@ class SceneData:
 
     def get_obj_surroundings(
             self,
-            obj_id: str, radius: float,
-            exclude_obj_ids: Optional[List[str]] = None,
+            obj_id: str | int, radius: float,
+            exclude_obj_ids: Optional[List[str | int]] = None,
             exclude_labels: Optional[List[str]] = None
     ) -> List[str]:
         """Get object IDs within radius distance of given object"""
-        exclude_obj_ids_set = set(exclude_obj_ids or [])
+        obj_id = self._validate_obj_id_format(obj_id)
+        exclude_obj_ids_set = {self._validate_obj_id_format(e) for e in (exclude_obj_ids or [])}
         exclude_labels_set = set(exclude_labels or [])
 
         self._validate_obj_id(obj_id, exclude_obj_ids_set, exclude_labels_set)
@@ -97,15 +101,16 @@ class SceneData:
 
     def get_obj_k_neighbors(
             self,
-            obj_id: str, k: int,
-            exclude_obj_ids: Optional[List[str]] = None,
+            obj_id: str | int, k: int,
+            exclude_obj_ids: Optional[List[str | int]] = None,
             exclude_labels: Optional[List[str]] = None
     ) -> List[str]:
         """Get k nearest neighboring object IDs to given object"""
         if k < 1:
             raise ValueError('k must be positive')
 
-        exclude_obj_ids_set = set(exclude_obj_ids or [])
+        obj_id = self._validate_obj_id_format(obj_id)
+        exclude_obj_ids_set = {self._validate_obj_id_format(e) for e in (exclude_obj_ids or [])}
         exclude_labels_set = set(exclude_labels or [])
 
         self._validate_obj_id(obj_id, exclude_obj_ids_set, exclude_labels_set)
@@ -137,7 +142,15 @@ class SceneData:
         if self._object_map[obj_id] in exclude_labels:
             raise ValueError(f'Target object label "{self._object_map[obj_id]}" is in exclude_labels')
 
-    def _validate_distance_key(self, obj_id1: str, obj_id2: str) -> str:
+    @staticmethod
+    def _validate_obj_id_format(obj_id: str | int) -> str:
+        """Validate and convert object ID to string format"""
+        obj_id_str = str(obj_id)
+        if not obj_id_str.isdigit():
+            raise ValueError(f'Object ID "{obj_id}" is not a non-negative integer')
+        return obj_id_str
+
+    def _validate_distance_key(self, obj_id1: str | int, obj_id2: str | int) -> str:
         """Validate and format distance key"""
         if obj_id1 == obj_id2:
             raise ValueError('Object IDs must be different')
@@ -145,4 +158,4 @@ class SceneData:
             raise ValueError(f'Object ID "{obj_id1}" not found in scene')
         if obj_id2 not in self._object_map:
             raise ValueError(f'Object ID "{obj_id2}" not found in scene')
-        return f'{min(obj_id1, obj_id2)}-{max(obj_id1, obj_id2)}'
+        return f'{min(int(obj_id1), int(obj_id2))}-{max(int(obj_id1), int(obj_id2))}'
