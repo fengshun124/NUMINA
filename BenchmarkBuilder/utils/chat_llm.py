@@ -39,7 +39,7 @@ def _chat_openai(request_text: str, llm_model: str = 'gpt-4o-mini-2024-07-18') -
 def chat_with_llm(
         request_text: str,
         llm_model: str = 'qwen2.5:72b',
-        llm_backend: Literal['ollama', 'openai'] = 'ollama',
+        llm_backend: str = 'ollama',
 ) -> str:
     """Helper function for LLM chatting"""
     match llm_backend:

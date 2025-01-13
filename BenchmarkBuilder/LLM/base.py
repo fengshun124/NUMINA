@@ -1,7 +1,6 @@
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Literal
 
 from tqdm import tqdm
 
@@ -19,7 +18,7 @@ class LLMBasedQuestionGenerator(ABC):
             question_json_file: str,
             rewrite_question_type: str,
             llm_model: str = 'qwen2.5:72b',
-            llm_backend: Literal['ollama', 'openai'] = 'ollama',
+            llm_backend: str = 'ollama',
             export_dir: str = './output/',
     ) -> None:
         """Initialize LLM-based question generator"""

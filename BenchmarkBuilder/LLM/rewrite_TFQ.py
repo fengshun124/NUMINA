@@ -1,34 +1,27 @@
 import os
 import random
 import sys
-from typing import Literal
-
-import click
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from base.LLM_base import LLMBasedQuestionGenerator
-from utils.io import parse_json_text, enum_files
+from BenchmarkBuilder.LLM.base import LLMBasedQuestionGenerator
+from BenchmarkBuilder.utils.io import parse_json_text
 
 
-class TFQGenerator(LLMBasedQuestionGenerator):
-    def __init__(
-            self,
-            question_json_file: str,
-            llm_model: str = 'qwen2.5:72b',
-            llm_backend: Literal['ollama', 'openai'] = 'ollama',
-            export_dir: str = './output/',
-            is_evenly_shuffled_boolean: bool = False,
-    ):
+class TFQRewriter(LLMBasedQuestionGenerator):
+    """True/False question generator implementation"""
+
+    def __init__(self, **kwargs):
+        # extract TFQ-specific parameters before calling parent init
+        self.is_evenly_shuffled_boolean = kwargs.pop('is_evenly_shuffled_boolean', False)
+
+        # Call parent init with remaining kwargs
         super().__init__(
-            question_json_file=os.path.abspath(question_json_file),
+            question_json_file=kwargs['question_json_file'],
             rewrite_question_type='TFQ',
-            llm_model=llm_model,
-            llm_backend=llm_backend,
-            export_dir=export_dir
+            llm_model=kwargs.get('llm_model', 'qwen2.5:72b'),
+            llm_backend=kwargs.get('llm_backend', 'ollama'),
+            export_dir=kwargs.get('export_dir', './output/')
         )
-
-        # whether to strictly distribute the options evenly across the answer space
-        self.is_evenly_shuffled_options = is_evenly_shuffled_boolean
 
     def _rewrite_question(
             self,
@@ -41,7 +34,7 @@ class TFQGenerator(LLMBasedQuestionGenerator):
         # cleanup answer text
         src_answer_cleanup = src_answer.rstrip('.').strip()
         # generate rewrite caption
-        if self.is_evenly_shuffled_options:
+        if self.is_evenly_shuffled_boolean:
             preset_rewritten_boolean = True if question_set_idx % 2 == 0 else False
         else:
             preset_rewritten_boolean = random.choice([True, False])
@@ -89,7 +82,8 @@ class TFQGenerator(LLMBasedQuestionGenerator):
             'boolean_word_pairs': f'{affirmative_word} / {negative_word}',
             'preset_answer': preset_rewritten_boolean,
             'question_set_idx': question_set_idx,
-            'question_type': 'TrueFalse',
+            'question_type': 'LLM-TrueFalse',
+            'llm_model': self.llm_model,
         }
 
     def _validate_rewritten_question(
@@ -114,51 +108,3 @@ class TFQGenerator(LLMBasedQuestionGenerator):
             )
 
         return True
-
-
-@click.command()
-@click.option('--llm_model', default='qwen2.5:72b', type=str,
-              help='The LLM model used for rewriting the question_json')
-@click.option('--llm_backend', default='ollama', type=click.Choice(['ollama', 'openai']),
-              help='The backend service for the LLM model. Choose between Ollama (default) or OpenAI')
-@click.option('--question_file', type=click.Path(readable=True, dir_okay=True),
-              prompt='Enter the input directory or file path',
-              help='The directory or file containing the question JSONs')
-@click.option('--evenly_shuffled', is_flag=True,
-              help='Distribute the options evenly across the answer space')
-@click.option('--max_retry', default=5, type=click.IntRange(1, None),
-              help='Maximum number of retries for each question when failed to rewrite')
-@click.option('--export_dir', default='./output/',
-              type=click.Path(file_okay=False, writable=True),
-              help='The directory to export the rewritten question JSONs')
-@click.option('-s', '--skip_confirm', is_flag=False, default=False,
-              help='Skip the confirmation prompt before processing the question JSONs')
-def cli(
-        llm_model: str,
-        llm_backend: Literal['ollama', 'openai'],
-        question_file: str,
-        evenly_shuffled: bool,
-        max_retry: int,
-        export_dir: str,
-        skip_confirm: bool
-):
-    """CLI for rewriting the questions as True/False questions"""
-    question_jsons = enum_files(question_file, '.json', skip_confirm)
-
-    print(f'{f" Start rewriting {len(question_jsons)} question JSON files ":=^80}')
-    for question_json in question_jsons:
-        mcq_generator = TFQGenerator(
-            question_json_file=question_json,
-            llm_model=llm_model,
-            llm_backend=llm_backend,
-            export_dir=export_dir,
-            is_evenly_shuffled_boolean=evenly_shuffled
-        )
-        mcq_generator.rewrite(max_retries=max_retry)
-        print(f'Rewritten questions exported to: {mcq_generator.export_dir}')
-
-    print(f'{f" Finished rewriting {len(question_jsons)} question JSON files ":=^80}')
-
-
-if __name__ == '__main__':
-    cli()

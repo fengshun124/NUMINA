@@ -3,39 +3,30 @@ import random
 import re
 import string
 import sys
-from typing import Literal
-
-import click
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from base.LLM_base import LLMBasedQuestionGenerator
-from utils.io import parse_json_text, enum_files
+from BenchmarkBuilder.LLM.base import LLMBasedQuestionGenerator
+from BenchmarkBuilder.utils.io import parse_json_text
 
 
-class MCQGenerator(LLMBasedQuestionGenerator):
-    def __init__(
-            self,
-            question_json_file: str,
-            llm_model: str = 'qwen2.5:72b',
-            llm_backend: Literal['ollama', 'openai'] = 'ollama',
-            export_dir: str = './output/',
-            n_options: int = 3,
-            is_evenly_shuffled_options: bool = False,
-    ):
+class MCQRewriter(LLMBasedQuestionGenerator):
+    """MCQ generator implementation"""
+
+    def __init__(self, **kwargs):
+        # extract MCQ-specific parameters before calling parent init
+        self.n_options = kwargs.pop('n_options', 3)
+        self.is_evenly_shuffled_options = kwargs.pop('is_evenly_shuffled_options', False)
+
+        # Call parent init with remaining kwargs
         super().__init__(
-            question_json_file=os.path.abspath(question_json_file),
+            question_json_file=kwargs['question_json_file'],
             rewrite_question_type='MCQ',
-            llm_model=llm_model,
-            llm_backend=llm_backend,
-            export_dir=export_dir,
+            llm_model=kwargs.get('llm_model', 'qwen2.5:72b'),
+            llm_backend=kwargs.get('llm_backend', 'ollama'),
+            export_dir=kwargs.get('export_dir', './output/')
         )
 
-        # number of options for multiple-choice questions
-        self.n_options = n_options
-        # whether to strictly distribute the options evenly across the answer space
-        self.is_evenly_shuffled_options = is_evenly_shuffled_options
-        # if n_options is less than 2, raise an error
-        if n_options < 2:
+        if self.n_options < 2:
             raise ValueError('Number of options must be at least 2')
 
     def _rewrite_question(
@@ -91,7 +82,8 @@ class MCQGenerator(LLMBasedQuestionGenerator):
             'caption': preset_rewritten_option,
             'CoT_caption': f'<<answer:{preset_rewritten_option}>>',
             'question_set_idx': question_set_idx,
-            'question_type': 'MultipleChoice',
+            'question_type': 'LLM-MultipleChoice',
+            'llm_model': self.llm_model,
         }
 
     def _validate_rewritten_question(
@@ -121,55 +113,3 @@ class MCQGenerator(LLMBasedQuestionGenerator):
                              f'found in the main body of the question: "{rewrite_output_dict["prompt"]}"')
 
         return True
-
-
-@click.command()
-@click.option('--llm_model', default='qwen2.5:72b', type=str,
-              help='The LLM model used for rewriting the question_json')
-@click.option('--llm_backend', default='ollama', type=click.Choice(['ollama', 'openai']),
-              help='The backend service for the LLM model. Choose between Ollama (default) or OpenAI')
-@click.option('--question_file', type=click.Path(readable=True, dir_okay=True),
-              prompt='Enter the input directory or file path',
-              help='The directory or file containing the question JSONs')
-@click.option('--n_option', default=3, type=click.IntRange(2, None),
-              help='Number of options for the multiple-choice question')
-@click.option('--evenly_shuffled', is_flag=True, default=False,
-              help='Distribute the options evenly across the answer space')
-@click.option('--max_retry', default=5, type=click.IntRange(1, None),
-              help='Maximum number of retries for each question when failed to rewrite')
-@click.option('--export_dir', default='./output/',
-              type=click.Path(file_okay=False, writable=True),
-              help='The directory to export the rewritten question JSONs')
-@click.option('-s', '--skip_confirm', is_flag=True,
-              help='Skip the confirmation prompt before processing the question JSONs')
-def cli(
-        llm_model: str,
-        llm_backend: Literal['ollama', 'openai'],
-        question_file: str,
-        n_option: int,
-        evenly_shuffled: bool,
-        max_retry: int,
-        export_dir: str,
-        skip_confirm: bool = False
-):
-    """CLI for rewriting the question_json as multiple-choice question_json"""
-    question_jsons = enum_files(question_file, '.json', skip_confirm)
-
-    print(f'{f" Start rewriting {len(question_jsons)} question JSON files ":=^80}')
-    for question_json in question_jsons:
-        mcq_generator = MCQGenerator(
-            question_json_file=question_json,
-            llm_model=llm_model,
-            llm_backend=llm_backend,
-            export_dir=export_dir,
-            n_options=n_option,
-            is_evenly_shuffled_options=evenly_shuffled
-        )
-        mcq_generator.rewrite(max_retries=max_retry)
-        print(f'Rewritten questions exported to: {mcq_generator.export_dir}')
-
-    print(f'{f" Finished rewriting {len(question_jsons)} question JSON files ":=^80}')
-
-
-if __name__ == '__main__':
-    cli()
