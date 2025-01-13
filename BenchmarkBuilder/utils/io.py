@@ -7,7 +7,7 @@ import click
 
 def enum_files(
         file_path: str, file_ext: str = '.json',
-        is_skip_confirm: bool = False
+        is_verbose: bool = False,
 ) -> list[str]:
     if os.path.isdir(file_path):
         files = [os.path.abspath(os.path.join(file_path, f))
@@ -20,13 +20,11 @@ def enum_files(
     if len(files) == 0:
         raise ValueError(f'No files with extension "{file_ext}" found in "{file_path}"')
 
-    print(f'Found {len(files)} files with extension "{file_ext}" in "{file_path}":')
-    print('\n'.join(files) if len(files) < 10 else '\n'.join(files[:5] + ['...'] + files[-5:]))
+    if is_verbose:
+        print(f'Found {len(files)} files with extension "{file_ext}" in "{file_path}":')
+        print('\n'.join(files) if len(files) < 10 else '\n'.join(files[:5] + ['...'] + files[-5:]))
 
-    if not is_skip_confirm or click.confirm('Proceed with the above files?', default=True):
-        return files
-    else:
-        raise click.Abort('Aborted.')
+    return files
 
 
 def parse_json_text(
