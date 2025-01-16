@@ -3,11 +3,12 @@ import os
 from pathlib import Path
 
 import click
+from filelock import FileLock
 
 
 def enum_files(
         file_path: str, file_ext: str = '.json',
-        is_verbose: bool = False,
+        is_skip_confirm: bool = False
 ) -> list[str]:
     if os.path.isdir(file_path):
         files = [os.path.abspath(os.path.join(file_path, f))
@@ -20,11 +21,13 @@ def enum_files(
     if len(files) == 0:
         raise ValueError(f'No files with extension "{file_ext}" found in "{file_path}"')
 
-    if is_verbose:
-        print(f'Found {len(files)} files with extension "{file_ext}" in "{file_path}":')
-        print('\n'.join(files) if len(files) < 10 else '\n'.join(files[:5] + ['...'] + files[-5:]))
+    print(f'Found {len(files)} files with extension "{file_ext}" in "{file_path}":')
+    print('\n'.join(files) if len(files) < 10 else '\n'.join(files[:5] + ['...'] + files[-5:]))
 
-    return files
+    if not is_skip_confirm or click.confirm('Proceed with the above files?', default=True):
+        return files
+    else:
+        raise click.Abort('Aborted.')
 
 
 def parse_json_text(
@@ -66,25 +69,29 @@ def export_dict_as_json_file(
 ) -> None:
     """Export the JSON file incrementally"""
     os.makedirs(os.path.dirname(json_file_path), exist_ok=True)
-    # if JSON file does not exist or empty, export the data as JSON file
-    if not os.path.isfile(json_file_path) or os.path.getsize(json_file_path) == 0:
-        with open(json_file_path, 'w', encoding='utf-8') as f:
-            json.dump([data_dict], f, indent=4)
-    # if JSON file exists and not empty, append the data to the JSON file
-    else:
-        try:
-            with open(json_file_path, 'r+', encoding='utf-8') as f:
-                f.seek(0)
-                json_data = json.load(f)
-                if not isinstance(json_data, list):
-                    raise ValueError(f'Invalid JSON format in {json_file_path}')
-                # append the data to the JSON file
-                json_data.append(data_dict)
-                f.seek(0)
-                json.dump(json_data, f, indent=4)
-                f.truncate()
-        except json.JSONDecodeError as e:
-            raise ValueError(f'Invalid JSON format in {json_file_path}: {e}')
+    lock_path = json_file_path + '.lock'
+    lock = FileLock(lock_path)
+
+    with lock:
+        # if JSON file does not exist or empty, export the data as JSON file
+        if not os.path.isfile(json_file_path) or os.path.getsize(json_file_path) == 0:
+            with open(json_file_path, 'w', encoding='utf-8') as f:
+                json.dump([data_dict], f, indent=4)
+        # if JSON file exists and not empty, append the data to the JSON file
+        else:
+            try:
+                with open(json_file_path, 'r+', encoding='utf-8') as f:
+                    f.seek(0)
+                    json_data = json.load(f)
+                    if not isinstance(json_data, list):
+                        raise ValueError(f'Invalid JSON format in {json_file_path}')
+                    # append the data to the JSON file
+                    json_data.append(data_dict)
+                    f.seek(0)
+                    json.dump(json_data, f, indent=4)
+                    f.truncate()
+            except json.JSONDecodeError as e:
+                raise ValueError(f'Invalid JSON format in {json_file_path}: {e}')
 
 
 def confirm_overwrite_file(file_path: str | Path) -> bool:

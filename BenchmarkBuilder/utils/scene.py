@@ -34,7 +34,7 @@ class SceneData:
     def __init__(self, scene_stat_json_file: str) -> None:
         """Initialize scene data from statistics JSON file"""
         self.scene_stat_dict = load_json_file_as_dict(scene_stat_json_file)[0]
-        self.scene_id = self.scene_stat_dict['scene_id']
+        self.scene_id: str = self.scene_stat_dict['scene_id']
         self.instances = [SceneInstance(**inst) for inst in self.scene_stat_dict['instances']]
 
         self._instance_map = self.scene_stat_dict['instance_map']
