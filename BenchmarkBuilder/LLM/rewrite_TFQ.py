@@ -20,7 +20,7 @@ class TFQRewriter(LLMBasedQuestionGenerator):
             rewrite_question_type='TFQ',
             llm_model=kwargs.get('llm_model', 'qwen2.5:72b'),
             llm_backend=kwargs.get('llm_backend', 'ollama'),
-            export_dir=kwargs.get('export_dir', './output/')
+            output_path=kwargs.get('export_dir', './output/')
         )
 
     def _rewrite_question(
@@ -79,11 +79,15 @@ class TFQRewriter(LLMBasedQuestionGenerator):
             'prompt': rewritten_question_dict['question'],
             'caption': affirmative_word if preset_rewritten_boolean else negative_word,
             'CoT_caption': f'<<answer:{affirmative_word if preset_rewritten_boolean else negative_word}>>',
+            'ref_captions': affirmative_words if preset_rewritten_boolean else negative_words,
             'boolean_word_pairs': f'{affirmative_word} / {negative_word}',
             'preset_answer': preset_rewritten_boolean,
             'question_set_idx': question_set_idx,
-            'question_type': 'LLM-TrueFalse',
-            'llm_model': self.llm_model,
+            'question_type': 'LLM_rewrite-TFQ',
+            'llm': {
+                'model': self.llm_model,
+                'backend': self.llm_backend
+            }
         }
 
     def _validate_rewritten_question(

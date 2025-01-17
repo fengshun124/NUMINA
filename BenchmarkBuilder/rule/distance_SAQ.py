@@ -54,7 +54,7 @@ class DistanceSAQGenerator(DualLabelsBasedQuestionGenerator):
             'CoT_caption': f'<<answer:{pairwise_distance:>.2f}>>',
             'ref_captions': [
                 f'{pairwise_distance:>.2f}',
-                f'{pairwise_distance:>.2f} meters',
-                f'{pairwise_distance:>.2f} m',
+                # f'{pairwise_distance:>.2f} meters',
+                # f'{pairwise_distance:>.2f} m',
             ],
         }

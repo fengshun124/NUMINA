@@ -23,7 +23,7 @@ class MCQRewriter(LLMBasedQuestionGenerator):
             rewrite_question_type='MCQ',
             llm_model=kwargs.get('llm_model', 'qwen2.5:72b'),
             llm_backend=kwargs.get('llm_backend', 'ollama'),
-            export_dir=kwargs.get('export_dir', './output/')
+            output_path=kwargs.get('export_dir', './output/')
         )
 
         if self.n_options < 2:
@@ -62,6 +62,7 @@ class MCQRewriter(LLMBasedQuestionGenerator):
             f'- Of the same type (e.g., if the correct answer is a noun, the alternatives should also be nouns). \n'
             f'- Distinguishable from each other by object or entity, rather than just using synonyms. \n'
             f'- Plausible and realistic to avoid making it too easy to guess the correct answer. \n'
+            f'Between the question and the options, add a hint for answering the question with only the correct option. '
             f'The correct answer should be placed in the provided correct option label. '
             f'Separate the question from the options with a space and format the options as "A) option_a B) option_b", etc. '
             f'Reply only with a JSON object containing the following fields: \n'
@@ -81,9 +82,13 @@ class MCQRewriter(LLMBasedQuestionGenerator):
             'prompt': rewritten_question_dict['question'],
             'caption': preset_rewritten_option,
             'CoT_caption': f'<<answer:{preset_rewritten_option}>>',
+            'ref_captions': [preset_rewritten_option],
             'question_set_idx': question_set_idx,
-            'question_type': 'LLM-MultipleChoice',
-            'llm_model': self.llm_model,
+            'question_type': 'LLM_rewrite-MCQ',
+            'llm': {
+                'model': self.llm_model,
+                'backend': self.llm_backend
+            }
         }
 
     def _validate_rewritten_question(

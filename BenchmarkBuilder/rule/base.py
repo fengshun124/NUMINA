@@ -33,7 +33,7 @@ PROMPT_TFQ_HINT_TEMPLATES = [
 
 class RuleBasedQuestionGenerator(ABC):
     """Base class for rule-based question generator"""
-    DEFAULT_EXCLUDED_OBJ_LABELS = ['wall', 'floor', 'ceiling', 'object']
+    DEFAULT_EXCLUDED_OBJ_LABELS = ['wall', 'floor', 'ceiling', 'object', 'item']
 
     def __init__(
             self,

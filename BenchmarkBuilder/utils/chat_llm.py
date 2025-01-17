@@ -5,7 +5,7 @@ from typing import Literal
 
 def _cleanup_response(response: str) -> str:
     """Remove non-Latin characters (e.g., Chinese characters) and spacing from response"""
-    return re.sub(r'[\u4e00-\u9fff]+', '', response).replace('\n', '').replace('\r', '')
+    return re.sub(r'[\u4e00-\u9fff]+', '', response).replace('\n', ' ').replace('\r', '')
 
 
 def _chat_ollama(request_text: str, llm_model: str = 'qwen2.5:72b') -> str:

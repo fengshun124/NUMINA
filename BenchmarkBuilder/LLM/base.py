@@ -19,7 +19,7 @@ class LLMBasedQuestionGenerator(ABC):
             rewrite_question_type: str,
             llm_model: str = 'qwen2.5:72b',
             llm_backend: str = 'ollama',
-            export_dir: str = './output/',
+            output_path: str = './output/',
     ) -> None:
         """Initialize LLM-based question generator"""
         self.question_json_file = os.path.abspath(question_json_file)
@@ -32,13 +32,13 @@ class LLMBasedQuestionGenerator(ABC):
         print(f'Using "{llm_model}" model with "{llm_backend}" backend for rewriting the questions')
 
         # configure export path
-        self.export_dir = Path(export_dir).absolute()
-        print(f'Exporting the rewritten questions and failed rewritten questions to: {self.export_dir}')
+        self.output_path = Path(output_path).absolute()
+        print(f'Exporting the rewritten questions and failed rewritten questions to: {self.output_path}')
 
         self.rewrite_json_file = os.path.join(
-            self.export_dir, f'{self.rewrite_question_type}-{self.question_label}.json')
+            self.output_path, f'{self.rewrite_question_type}-{self.question_label}.json')
         self.fail_rewrite_json_file = os.path.join(
-            self.export_dir, f'FAIL-{self.rewrite_question_type}-{self.question_label}.json')
+            self.output_path, f'FAIL-{self.rewrite_question_type}-{self.question_label}.json')
 
         if not confirm_overwrite_file(self.rewrite_json_file):
             raise Exception(f'Aborted overwriting the existing file: {self.question_json_file}')

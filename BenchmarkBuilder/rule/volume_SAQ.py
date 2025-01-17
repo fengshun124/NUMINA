@@ -69,8 +69,8 @@ class VolumeSAQGenerator(SingleLabelBasedQuestionGenerator):
             ),
             'ref_captions': [
                 f'{bbox_volume:.2f}',
-                f'{bbox_volume:.2f} cubic meters',
-                f'{bbox_volume:.2f} m^3',
-                f'{bbox_volume:.2f} m3',
+                # f'{bbox_volume:.2f} cubic meters',
+                # f'{bbox_volume:.2f} m^3',
+                # f'{bbox_volume:.2f} m3',
             ],
         }

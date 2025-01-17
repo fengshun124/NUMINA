@@ -80,59 +80,6 @@ class CountSAQGenerator(SingleLabelBasedQuestionGenerator):
             'CoT_caption': f'<<answer:{obj_count}>>',
             'ref_captions': [
                 f'{obj_count}',
-                f'{obj_count} {label}',
-            ],
-        }
-
-
-class CountTFQGenerator(SingleLabelBasedQuestionGenerator):
-    def __init__(
-            self,
-            scene_stat_json_file: str,
-            output_json_file: str = './output/NUM-count-TFQ.json',
-            excluded_labels: list[str] | None = None,
-    ) -> None:
-        super().__init__(
-            scene_stat_json_file=scene_stat_json_file,
-            output_json_file=output_json_file,
-            excluded_labels=excluded_labels,
-            allow_repeated_label1=True,
-            allow_repeated_label2=True,
-            question_type='RULE-count-TFQ',
-        )
-
-    def _form_question_dict(
-            self, label1: str, label2: str, preset_boolean: bool
-    ) -> dict:
-        """Form question for comparing the count of two objects in the scene"""
-        instances1 = self.scene_data.get_instances_by_label(label1)
-        instances2 = self.scene_data.get_instances_by_label(label2)
-        obj1_count, obj2_count = len(instances1), len(instances2)
-
-        # select the rule for comparison
-        relation = random.choice(list(COUNT_TFQ_RELATION_DICT.keys()))
-
-        return {
-            'meta': {
-                'label1': label1,
-                'label2': label2,
-                'obj1_ids': [inst.object_id for inst in instances1],
-                'obj2_ids': [inst.object_id for inst in instances2],
-            },
-            'prompt': random.choice(COUNT_TFQ_RELATION_DICT[relation]['templates']).replace(
-                '<OBJ1>', label1).replace(
-                '<OBJ2>', label2)
-                      + random.choice(PROMPT_SAQ_HINT_TEMPLATES),
-            'caption': f'{label1} {COUNT_TFQ_RELATION_DICT[relation]["text"]} {label2}',
-            'CoT_caption': COUNT_TFQ_CoT_TEMPLATE.replace(
-                '<OBJ1>', label1).replace(
-                '<OBJ2>', label2).replace(
-                '<OBJ1_COUNT>', str(obj1_count)).replace(
-                '<OBJ2_COUNT>', str(obj2_count)).replace(
-                '<OBJ1_RULE>', COUNT_TFQ_RELATION_DICT[relation]['text']).replace(
-                '<ANSWER>', str(COUNT_TFQ_RELATION_DICT[relation]['func'](obj1_count, obj2_count))),
-            'ref_captions': [
-                f'{label1} {COUNT_TFQ_RELATION_DICT[relation]["text"]} {label2}',
-                f'{obj1_count} {label1} {COUNT_TFQ_RELATION_DICT[relation]["text"]} {obj2_count} {label2}',
+                # f'{obj_count} {label}',
             ],
         }

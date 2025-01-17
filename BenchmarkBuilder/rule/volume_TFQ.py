@@ -109,11 +109,10 @@ class VolumeTFQGenerator(
                 '<ANSWER>', 'yes' if preset_boolean else 'no').replace(
                 '\n', ' '),
             'ref_captions': [
-                'yes', 'Yes', 'YES', 'Y', 'True', 'true', 'TRUE', 'correct', 'Correct', 'CORRECT'
+                'Yes', 'Y', 'True', 'T', 'Correct',
             ] if preset_boolean else [
-                'no', 'No', 'NO', 'N', 'False', 'false', 'FALSE', 'incorrect', 'Incorrect', 'INCORRECT'
+                'No', 'N', 'False', 'F', 'Incorrect',
             ],
-
         }
 
     def generate(
