@@ -1,5 +1,5 @@
-import tqdm
 from joblib import Parallel
+from tqdm.auto import tqdm
 
 
 # This snippet is taken from https://gist.github.com/tsvikas/5f859a484e53d4ef93400751d0a116de
@@ -80,7 +80,7 @@ class ParallelTqdm(Parallel):
     def dispatch_one_batch(self, iterator):
         # start progress_bar, if not started yet.
         if self.progress_bar is None:
-            self.progress_bar = tqdm.tqdm(
+            self.progress_bar = tqdm(
                 desc=self.desc,
                 total=self.total_tasks,
                 disable=self.disable_progressbar,

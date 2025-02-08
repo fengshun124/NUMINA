@@ -1,8 +1,11 @@
 import random
+from typing import List, Dict, Any
 
-from BenchmarkBuilder.rule.base import (
+from BenchmarkBuilder.rule.base.base import (
+    SingleObjectCandidateMixin, SAQMixin
+)
+from BenchmarkBuilder.rule.base.template import (
     PROMPT_SAQ_HINT_TEMPLATES,
-    SingleLabelBasedQuestionGenerator,
 )
 
 COUNT_SAQ_TEMPLATES = [
@@ -17,55 +20,20 @@ COUNT_SAQ_TEMPLATES = [
     'Please count the number of <OBJ> in the room.'
 ]
 
-COUNT_TFQ_RELATION_DICT = {
-    '>': {
-        'func': lambda x, y: x > y,
-        'text': 'greater than',
-        'templates': [
-            'Is the number of <OBJ1> greater than the number of <OBJ2>? ',
-            'Are there more <OBJ1> than <OBJ2> in the room? '
-        ]
-    },
-    '<': {
-        'func': lambda x, y: x < y,
-        'text': 'less than',
-        'templates': [
-            'Is the number of <OBJ1> less than the number of <OBJ2>? ',
-            'Are there fewer <OBJ1> than <OBJ2> in the room? '
-        ]
-    },
-    '=': {
-        'func': lambda x, y: x == y,
-        'text': 'equal to',
-        'templates': [
-            'Is the number of <OBJ1> equal to the number of <OBJ2>? ',
-            'Are there the same number of <OBJ1> and <OBJ2> in the room? '
-        ]
-    }
-}
 
-COUNT_TFQ_CoT_TEMPLATE = """Given the number of <OBJ1> as <OBJ1_COUNT> and the number of <OBJ2> as <OBJ2_COUNT>,
-the number of <OBJ1> is <OBJ1_RULE> the number of <OBJ2>.
-Therefore, the answer is <<answer:<ANSWER>>>."""
+class CountSAQGenerator(SAQMixin, SingleObjectCandidateMixin):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.question_type = 'RULE-count-SAQ'
+        self.allow_repeated_objects = True
 
+    def _get_candidates(self) -> List[str]:
+        return list(set(
+            inst.label for inst in super()._get_candidates()
+        ))
 
-class CountSAQGenerator(SingleLabelBasedQuestionGenerator):
-    def __init__(
-            self,
-            scene_stat_json_file: str,
-            output_json_file: str = './output/NUM-count-SAQ.json',
-            excluded_labels: list[str] | None = None,
-    ) -> None:
-        super().__init__(
-            scene_stat_json_file=scene_stat_json_file,
-            output_json_file=output_json_file,
-            excluded_labels=excluded_labels,
-            allow_repeated_objs=True,
-            question_type='RULE-count-SAQ',
-        )
-
-    def _form_question_dict(self, label: str) -> dict:
-        """Form question for counting objects in the scene"""
+    def _form_question_dict(self, **kwargs) -> Dict[str, Any]:
+        label = kwargs['candidate']
         instances = self.scene_data.get_instances_by_label(label)
         obj_count = len(instances)
 
@@ -74,12 +42,11 @@ class CountSAQGenerator(SingleLabelBasedQuestionGenerator):
                 'label': label,
                 'obj_ids': [inst.object_id for inst in instances],
             },
-            'prompt': random.choice(COUNT_SAQ_TEMPLATES).replace(
-                '<OBJ>', label) + random.choice(PROMPT_SAQ_HINT_TEMPLATES),
+            'prompt': (
+                    random.choice(COUNT_SAQ_TEMPLATES)
+                    .replace('<OBJ>', label)
+                    + random.choice(PROMPT_SAQ_HINT_TEMPLATES)
+            ),
             'caption': str(obj_count),
-            'CoT_caption': f'<<answer:{obj_count}>>',
-            'ref_captions': [
-                f'{obj_count}',
-                # f'{obj_count} {label}',
-            ],
+            'ref_captions': [obj_count],
         }

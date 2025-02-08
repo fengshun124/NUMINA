@@ -1,12 +1,14 @@
 import random
-from itertools import combinations
+from typing import Dict, Any
 
-import click
-
-from BenchmarkBuilder.rule.base import (
+from BenchmarkBuilder.rule.base.base import (
+    TFQMixin, DualObjectPairsCandidateMixin
+)
+from BenchmarkBuilder.rule.base.template import (
     PROMPT_TFQ_HINT_TEMPLATES,
-    RuleBasedQuestionGenerator,
-    TFQGeneratorMixin,
+    PROMPT_TFQ_CoT_HINT_TEMPLATE,
+    CAPTION_TFQ_AFFIRMATIVES,
+    CAPTION_TFQ_NEGATIVES,
 )
 
 DISTANCE_COMPARE_TFQ_RELATION_DICT = {
@@ -14,191 +16,187 @@ DISTANCE_COMPARE_TFQ_RELATION_DICT = {
         'func': lambda x, y: x > y,
         'text': 'greater than',
         'templates': [
-            'Is the distance between <P1-OBJ1> and <P1-OBJ2> greater than the distance between <P2-OBJ1> and <P2-OBJ2>? ',
-            'Is <P1-OBJ1> and <P1-OBJ2> further than <P2-OBJ1> and <P2-OBJ2>? '
-        ]
+            'Is the distance between <OBJ1A> and <OBJ1B> greater than the distance between <OBJ2A> and <OBJ2B>? ',
+            'Can you tell if the distance between <OBJ1A> and <OBJ1B> is greater than the distance between <OBJ2A> and <OBJ2B>? ',
+            'Is the distance between <OBJ1A> and <OBJ1B> greater than the one between <OBJ2A> and <OBJ2B>? ',
+        ],
+        'contrapositive': '<=',
+    },
+    '>=': {
+        'func': lambda x, y: x >= y,
+        'text': 'greater than or equal to',
+        'templates': [
+            'Is the distance between <OBJ1A> and <OBJ1B> greater than or equal to the distance between <OBJ2A> and <OBJ2B>? ',
+            'Can you tell if the distance between <OBJ1A> and <OBJ1B> is greater than or equal to the distance between <OBJ2A> and <OBJ2B>? ',
+            'Is the distance between <OBJ1A> and <OBJ1B> greater than or equal to the one between <OBJ2A> and <OBJ2B>? ',
+        ],
+        'contrapositive': '<',
     },
     '<': {
         'func': lambda x, y: x < y,
         'text': 'less than',
         'templates': [
-            'Is the distance between <P1-OBJ1> and <P1-OBJ2> less than the distance between <P2-OBJ1> and <P2-OBJ2>? ',
-            'Is <P1-OBJ1> and <P1-OBJ2> closer than <P2-OBJ1> and <P2-OBJ2>? '
-        ]
+            'Is the distance between <OBJ1A> and <OBJ1B> less than the distance between <OBJ2A> and <OBJ2B>? ',
+            'Can you tell if the distance between <OBJ1A> and <OBJ1B> is less than the distance between <OBJ2A> and <OBJ2B>? ',
+            'Is the distance between <OBJ1A> and <OBJ1B> less than the one between <OBJ2A> and <OBJ2B>? ',
+        ],
+        'contrapositive': '>=',
+        'contrapositive_text': 'greater than or equal to',
+    },
+    '<=': {
+        'func': lambda x, y: x <= y,
+        'text': 'less than or equal to',
+        'templates': [
+            'Is the distance between <OBJ1A> and <OBJ1B> less than or equal to the distance between <OBJ2A> and <OBJ2B>? ',
+            'Can you tell if the distance between <OBJ1A> and <OBJ1B> is less than or equal to the distance between <OBJ2A> and <OBJ2B>? ',
+            'Is the distance between <OBJ1A> and <OBJ1B> less than or equal to the one between <OBJ2A> and <OBJ2B>? ',
+        ],
+        'contrapositive': '>',
+        'contrapositive_text': 'greater than',
     },
     '=': {
-        'func': lambda x, y: abs(x - y) < 0.1,
+        # relative error <= 5%
+        'func': lambda x, y: abs(x - y) <= 0.05 * max(x, y),
         'text': 'approximately equal to',
         'templates': [
-            'Is the distance between <P1-OBJ1> and <P1-OBJ2> approximately the same as the distance between <P2-OBJ1> and <P2-OBJ2>? ',
-            'Is <P1-OBJ1> and <P1-OBJ2> approximately as far as <P2-OBJ1> and <P2-OBJ2>? '
-        ]
-    }
+            'Is the distance between <OBJ1A> and <OBJ1B> approximately equal to the distance between <OBJ2A> and <OBJ2B>? ',
+            'Can you tell if the distance between <OBJ1A> and <OBJ1B> is approximately equal to the distance between <OBJ2A> and <OBJ2B>? ',
+            'Is the distance between <OBJ1A> and <OBJ1B> approximately equal to the one between <OBJ2A> and <OBJ2B>? ',
+        ],
+        'contrapositive': '!=',
+    },
+    '!=': {
+        'func': lambda x, y: abs(x - y) > 0.05 * max(x, y),
+        'text': 'not approximately equal to',
+        'templates': [
+            'Is the distance between <OBJ1A> and <OBJ1B> not approximately equal to the distance between <OBJ2A> and <OBJ2B>? ',
+            'Can you tell if the distance between <OBJ1A> and <OBJ1B> is not approximately equal to the distance between <OBJ2A> and <OBJ2B>? ',
+            'Is the distance between <OBJ1A> and <OBJ1B> not approximately equal to the one between <OBJ2A> and <OBJ2B>? ',
+        ],
+        'contrapositive': '=',
+    },
 }
 
-DISTANCE_COMPARE_TFQ_CoT_TEMPLATE = """The distance between <P1-OBJ1> and <P1-OBJ2> is approximately <DIST1> meters.
-The distance between <P2-OBJ1> and <P2-OBJ2> is approximately <DIST2> meters.
-Since the distance between <P1-OBJ1> and <P1-OBJ2> is <RELATION> the distance between <P2-OBJ1> and <P2-OBJ2>,
-the correct answer is <<answer:<ANSWER>>>.
+DISTANCE_COMPARE_TFQ_CoT_CAPTION_TEMPLATE = """The distance between <OBJ1A> and <OBJ1B> is approximately <DIST1> meters. 
+The distance between <OBJ2A> and <OBJ2B> is approximately <DIST2> meters.
+As the distance between <OBJ1A> and <OBJ1B> is <BOOLEAN> <RELATION> the distance between <OBJ2A> and <OBJ2B>,
+the correct answer is <<ANSWER>>.
 """
 
 
-class DistanceTFQGenerator(
-    RuleBasedQuestionGenerator, TFQGeneratorMixin
-):
-    def __init__(
-            self,
-            scene_stat_json_file: str,
-            output_json_file: str = './output/NUM-distance_pair_compare-TFQ.json',
-            excluded_labels: list[str] | None = None,
-    ) -> None:
-        super().__init__(
-            scene_stat_json_file=scene_stat_json_file,
-            output_json_file=output_json_file,
-            excluded_labels=excluded_labels,
-            question_type='RULE-distance_pair_compare-TFQ',
-            allow_repeated_objs=False
+class DistanceCompareTFQGenerator(TFQMixin, DualObjectPairsCandidateMixin):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.question_type = 'RULE-distance_compare-TFQ'
+        self.allow_repeated_inst1as = False
+        self.allow_repeated_inst1bs = False
+        self.allow_repeated_inst2as = False
+        self.allow_repeated_inst2bs = False
+
+    def _form_question_dict(self, **kwargs) -> Dict[str, Any]:
+        (inst1a, inst1b), (inst2a, inst2b) = kwargs['candidate']
+        preset_boolean = kwargs['preset_boolean']
+
+        # get the distance between the object pairs
+        dist1 = self.scene_data.get_pairwise_distance(inst1a.object_id, inst1b.object_id)
+        dist2 = self.scene_data.get_pairwise_distance(inst2a.object_id, inst2b.object_id)
+
+        # find all relations that yield the intended boolean
+        valid_relations = [
+            rel for rel, info in DISTANCE_COMPARE_TFQ_RELATION_DICT.items()
+            if info['func'](dist1, dist2) == preset_boolean
+        ]
+        if valid_relations:
+            relation = random.choice(valid_relations)
+        else:
+            # fallback to a random relation and then swap with its contrapositive
+            relation = random.choice(list(DISTANCE_COMPARE_TFQ_RELATION_DICT.keys()))
+            if DISTANCE_COMPARE_TFQ_RELATION_DICT[relation]['func'](
+                    dist1, dist2) != preset_boolean:
+                relation = DISTANCE_COMPARE_TFQ_RELATION_DICT[relation]['contrapositive']
+
+        # determine the contrapositive relation for the proposition
+        contrapositive_relation = DISTANCE_COMPARE_TFQ_RELATION_DICT[relation]['contrapositive']
+
+        # prepare the main proposition text
+        base_prompt_text = (
+            random.choice(DISTANCE_COMPARE_TFQ_RELATION_DICT[relation]['templates'])
+            .replace('<OBJ1A>', inst1a.label)
+            .replace('<OBJ1B>', inst1b.label)
+            .replace('<OBJ2A>', inst2a.label)
+            .replace('<OBJ2B>', inst2b.label)
         )
+        prompt_caption = 'yes' if preset_boolean else 'no'
+        base_prompt_suffix_text = random.choice(PROMPT_TFQ_HINT_TEMPLATES)
 
-    def generate(
-            self,
-            n_questions: int,
-            max_retries: int = 3,
-            enforce_balanced_boolean: bool = True,
-            allow_duplicate_pairs: bool = False,
-    ) -> None:
-        """Generate True/False questions for comparing the distance between pairs of objects in the scene"""
-        available_labels = self._available_inst_labels
-        if len(available_labels) < 3:
-            click.echo(f'[ERROR] Not enough instances found for generating {self.question_type}, '
-                       f'possibly due to strict filter criteria for scene: {self.scene_data.scene_id}, '
-                       f'aborting question generation...')
-            return
-        available_pairs = list(combinations(available_labels, 2))
+        # prepare the contrapositive proposition text
+        cp_base_prompt_text = (
+            random.choice(DISTANCE_COMPARE_TFQ_RELATION_DICT[contrapositive_relation]['templates'])
+            .replace('<OBJ1A>', inst1a.label)
+            .replace('<OBJ1B>', inst1b.label)
+            .replace('<OBJ2A>', inst2a.label)
+            .replace('<OBJ2B>', inst2b.label)
+        )
+        cp_prompt_caption = 'yes' if not preset_boolean else 'no'
 
-        preset_booleans = self._generate_preset_booleans(n_questions, enforce_balanced_boolean)
-
-        question_dicts = []
-        remaining_pairs = available_pairs.copy()
-        for idx in range(n_questions):
-            if not remaining_pairs:
-                if allow_duplicate_pairs:
-                    click.echo(f'[WARN] Not enough unique instances found for generating {self.question_type}, '
-                               f'allowing duplicate pairs...')
-                    remaining_pairs = available_pairs.copy()
-                else:
-                    click.echo(f'[ERROR] Not enough unique instances found for generating {self.question_type}, '
-                               f'aborting question generation...')
-                    break
-
-            for attempt in range(1, max_retries + 1):
-                relation = random.choice(list(DISTANCE_COMPARE_TFQ_RELATION_DICT.keys()))
-                relation_func = DISTANCE_COMPARE_TFQ_RELATION_DICT[relation]['func']
-                # select a pair of objects
-                pair1_label1, pair1_label2 = random.choice(remaining_pairs)
-                pairwise_distance1 = self.scene_data.get_pairwise_distance(
-                    self.scene_data.get_instances_by_label(pair1_label1)[0].object_id,
-                    self.scene_data.get_instances_by_label(pair1_label2)[0].object_id,
-                )
-
-                # select a pair of objects satisfying the relation
-                valid_pair2s = [
-                    (label1, label2) for label1, label2 in remaining_pairs
-                    if (label1, label2) != (pair1_label1, pair1_label2)
-                       and relation_func(
-                        pairwise_distance1,
-                        self.scene_data.get_pairwise_distance(
-                            self.scene_data.get_instances_by_label(label1)[0].object_id,
-                            self.scene_data.get_instances_by_label(label2)[0].object_id,
-                        )
-                    ) is preset_booleans[idx]
-                ]
-
-                # retry or skip if no valid pairs found
-                if not valid_pair2s:
-                    if attempt == max_retries:
-                        click.echo(f'[ERROR] Unable to find a valid pair for question {idx + 1} '
-                                   f'after {max_retries} attempts, skipping...')
-                        break
-                    click.echo(f'[WARN] ({attempt}/{max_retries}) No valid pair found '
-                               f'for question {idx + 1}, retrying...')
-                    continue
-                # select a valid pair
-                pair2_label1, pair2_label2 = random.choice(valid_pair2s)
-
-                q_dict = self._form_question_dict(
-                    relation, preset_booleans[idx],
-                    pair1_label1, pair1_label2,
-                    pair2_label1, pair2_label2,
-                )
-                if q_dict not in question_dicts:
-                    question_dicts.append(q_dict)
-                    if not allow_duplicate_pairs:
-                        remaining_pairs.remove((pair1_label1, pair1_label2))
-                        remaining_pairs.remove((pair2_label1, pair2_label2))
-                    break
-                else:
-                    click.echo(f'[WARN] Duplicate question found for question {idx + 1}, retrying...')
-
-            # skip if no valid pair found after max_retries
-            click.echo(f'[ERROR] Unable to form valid pairs for {self.question_type} (Q{idx + 1})'
-                       f'after {max_retries} attempts, skipping...')
-
-        self._export_question_dicts(question_dicts)
-
-    def _form_question_dict(
-            self,
-            relation: str,
-            preset_boolean: bool,
-            pair1_label1: str, pair1_label2: str,
-            pair2_label1: str, pair2_label2: str,
-    ) -> dict[str, dict[str, str | float | bool] | str | list[str]]:
-        """Form True/False question for comparing the distance between pairs of objects in the scene"""
-        inst1 = self.scene_data.get_instances_by_label(pair1_label1)[0]
-        inst2 = self.scene_data.get_instances_by_label(pair1_label2)[0]
-        inst3 = self.scene_data.get_instances_by_label(pair2_label1)[0]
-        inst4 = self.scene_data.get_instances_by_label(pair2_label2)[0]
-
-        pairwise_distance1 = self.scene_data.get_pairwise_distance(
-            inst1.object_id, inst2.object_id)
-        pairwise_distance2 = self.scene_data.get_pairwise_distance(
-            inst3.object_id, inst4.object_id)
+        # build the chain-of-thought texts
+        chain_of_thought_base_text = (
+            DISTANCE_COMPARE_TFQ_CoT_CAPTION_TEMPLATE
+            .replace('<OBJ1A>', inst1a.label)
+            .replace('<OBJ1B>', inst1b.label)
+            .replace('<OBJ2A>', inst2a.label)
+            .replace('<OBJ2B>', inst2b.label)
+            .replace('<DIST1>', f'{round(dist1, 3):.2f}')
+            .replace('<DIST2>', f'{round(dist2, 3):.2f}')
+        )
+        chain_of_thought_prompt_suffix_text = PROMPT_TFQ_CoT_HINT_TEMPLATE
 
         return {
             'meta': {
-                'pair1_obj1_id': inst1.object_id,
-                'pair1_obj1_label': inst1.label,
-                'pair1_obj2_id': inst2.object_id,
-                'pair1_obj2_label': inst2.label,
-                'pair2_obj1_id': inst3.object_id,
-                'pair2_obj1_label': inst3.label,
-                'pair2_obj2_id': inst4.object_id,
-                'pair2_obj2_label': inst4.label,
-                'distance1': pairwise_distance1,
-                'distance2': pairwise_distance2,
+                'pair1': {
+                    **{
+                        inst_label: {
+                            'label': inst.label,
+                            'id': [i.object_id for i in self.scene_data.get_instances_by_label(inst.label)]
+                        }
+                        for inst_label, inst in {'inst1a': inst1a, 'inst1b': inst1b}.items()
+                    },
+                    'pairwise_distance': dist1,
+                },
+                'pair2': {
+                    **{
+                        inst_label: {
+                            'label': inst.label,
+                            'id': [i.object_id for i in self.scene_data.get_instances_by_label(inst.label)]
+                        }
+                        for inst_label, inst in {'inst2a': inst2a, 'inst2b': inst2b}.items()
+                    },
+                    'pairwise_distance': dist2,
+                },
+                'preset_boolean': preset_boolean,
                 'relation': relation,
-                'answer': DISTANCE_COMPARE_TFQ_RELATION_DICT[relation]['func'](
-                    pairwise_distance1, pairwise_distance2),
+                'cp_relation': contrapositive_relation,
             },
-            'prompt': random.choice(DISTANCE_COMPARE_TFQ_RELATION_DICT[relation]['templates']).replace(
-                '<P1-OBJ1>', inst1.label).replace(
-                '<P1-OBJ2>', inst2.label).replace(
-                '<P2-OBJ1>', inst3.label).replace(
-                '<P2-OBJ2>', inst4.label) + random.choice(PROMPT_TFQ_HINT_TEMPLATES),
-            'caption': 'yes' if preset_boolean else 'no',
-            'CoT_caption': DISTANCE_COMPARE_TFQ_CoT_TEMPLATE.replace(
-                '<P1-OBJ1>', inst1.label).replace(
-                '<P1-OBJ2>', inst2.label).replace(
-                '<P2-OBJ1>', inst3.label).replace(
-                '<P2-OBJ2>', inst4.label).replace(
-                '<DIST1>', f'{pairwise_distance1:.2f}').replace(
-                '<DIST2>', f'{pairwise_distance2:.2f}').replace(
-                '<RELATION>', DISTANCE_COMPARE_TFQ_RELATION_DICT[relation]['text']).replace(
-                '<ANSWER>', 'yes' if preset_boolean else 'no').replace(
-                '\n', ' '),
-            'ref_captions': [
-                'Yes', 'Y', 'True', 'T', 'Correct',
-            ] if preset_boolean else [
-                'No', 'N', 'False', 'F', 'Incorrect',
-            ],
+
+            'prompt': base_prompt_text + base_prompt_suffix_text,
+            'CoT_prompt': base_prompt_text + chain_of_thought_prompt_suffix_text,
+            'caption': prompt_caption,
+            'CoT_caption': (
+                chain_of_thought_base_text
+                .replace('<RELATION>', DISTANCE_COMPARE_TFQ_RELATION_DICT[relation]['text'])
+                .replace('<BOOLEAN>', '' if preset_boolean else 'not')
+                .replace('<ANSWER>', prompt_caption)
+            ),
+            'ref_captions': CAPTION_TFQ_AFFIRMATIVES if preset_boolean else CAPTION_TFQ_NEGATIVES,
+
+            'cp_prompt': cp_base_prompt_text + base_prompt_suffix_text,
+            'cp_CoT_prompt': cp_base_prompt_text + chain_of_thought_prompt_suffix_text,
+            'cp_caption': cp_prompt_caption,
+            'cp_CoT_caption': (
+                chain_of_thought_base_text
+                .replace('<RELATION>', DISTANCE_COMPARE_TFQ_RELATION_DICT[contrapositive_relation]['text'])
+                .replace('<BOOLEAN>', '' if not preset_boolean else 'not')
+                .replace('<ANSWER>', cp_prompt_caption)
+            ),
+            'cp_ref_captions': CAPTION_TFQ_AFFIRMATIVES if not preset_boolean else CAPTION_TFQ_NEGATIVES,
         }

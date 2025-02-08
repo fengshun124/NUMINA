@@ -1,6 +1,7 @@
 import os
 import random
 import sys
+from typing import Union
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from BenchmarkBuilder.LLM.base import LLMBasedQuestionGenerator
@@ -92,7 +93,7 @@ class TFQRewriter(LLMBasedQuestionGenerator):
 
     def _validate_rewritten_question(
             self,
-            rewrite_output_dict: dict[str, str | int | float]
+            rewrite_output_dict: dict[str, Union[str, int, float]]
     ) -> bool:
         """Validate the rewritten true/false question"""
         boolean_word_pairs = rewrite_output_dict['boolean_word_pairs'].split(' / ')

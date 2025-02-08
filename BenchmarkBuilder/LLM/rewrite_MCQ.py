@@ -3,6 +3,7 @@ import random
 import re
 import string
 import sys
+from typing import Union
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from BenchmarkBuilder.LLM.base import LLMBasedQuestionGenerator
@@ -35,7 +36,7 @@ class MCQRewriter(LLMBasedQuestionGenerator):
             src_answer: str,
             question_set_idx: int,
             **kwargs
-    ) -> dict[str, str | int | float]:
+    ) -> dict[str, Union[str, int, float]]:
         """Rewrite the question as a multiple-choice question"""
         # cleanup answer text
         src_answer_cleanup = src_answer.rstrip('.').strip()
@@ -82,7 +83,7 @@ class MCQRewriter(LLMBasedQuestionGenerator):
             'prompt': rewritten_question_dict['question'],
             'caption': preset_rewritten_option,
             'CoT_caption': f'<<answer:{preset_rewritten_option}>>',
-            'ref_captions': [preset_rewritten_option],
+            'ref_captions': preset_rewritten_option,
             'question_set_idx': question_set_idx,
             'question_type': 'LLM_rewrite-MCQ',
             'llm': {
@@ -93,7 +94,7 @@ class MCQRewriter(LLMBasedQuestionGenerator):
 
     def _validate_rewritten_question(
             self,
-            rewrite_output_dict: dict[str, str | int | float]
+            rewrite_output_dict: dict[str, Union[str, int, float]]
     ) -> bool:
         """Validate the rewritten multiple-choice question"""
         options_pattern = re.compile(r'([A-Z])\)\s*(.*?)\s*(?=[A-Z]\)|$)')

@@ -27,6 +27,19 @@ class SceneInstance:
             'bbox_volume': self.bbox_volume,
         }
 
+    def __repr__(self):
+        return f'SceneInstance({self.object_id}, {self.label})'
+
+    def __hash__(self):
+        # hash by object ID & label
+        return hash((self.object_id, self.label))
+
+    def __eq__(self, other):
+        if not isinstance(other, SceneInstance):
+            return False
+        # check both ID and name
+        return self.object_id == other.object_id and self.label == other.label
+
 
 class SceneData:
     """Manages scene data and provides methods to query object relationships"""
