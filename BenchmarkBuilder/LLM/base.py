@@ -1,6 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Union, Dict
 
 from tqdm import tqdm
 
@@ -12,7 +13,7 @@ from BenchmarkBuilder.utils.io import (
 )
 
 
-class LLMBasedQuestionGenerator(ABC):
+class LLMBasedQRewriter(ABC):
     def __init__(
             self,
             question_json_file: str,
@@ -68,9 +69,15 @@ class LLMBasedQuestionGenerator(ABC):
                         idx
                     )
                     if self._validate_rewritten_question(rewrite_output_dict):
-                        export_dict_as_json_file({
+                        merged_meta_dict = {
                             **{key: question_dict[key] for key in meta_keys},
-                            **rewrite_output_dict,
+                            **rewrite_output_dict.get('meta', {}),
+                        }
+                        export_dict_as_json_file({
+                            'question_set_idx': idx,
+                            'question_type': self.rewrite_question_type,
+                            'meta': merged_meta_dict,
+                            **{k: v for k, v in rewrite_output_dict.items() if k != 'meta'}
                         }, self.rewrite_json_file)
                     break
                 except Exception as e:
@@ -97,7 +104,7 @@ class LLMBasedQuestionGenerator(ABC):
     @abstractmethod
     def _validate_rewritten_question(
             self,
-            rewrite_output_dict: dict[str, str | int | float]
+            rewrite_output_dict: Dict[str, Union[str, int, float, Dict[str, Union[str, int, float]]]]
     ) -> bool:
         """Validate the response from the LLM model"""
         pass
