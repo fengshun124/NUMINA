@@ -2,12 +2,12 @@ import random
 from typing import Dict, Any
 
 from BenchmarkBuilder.rule.base.base import (
-    SAQMixin, DualObjectsCandidateMixin
+    NumericalInferenceMixin, DualObjectsCandidateMixin
 )
 from BenchmarkBuilder.rule.base.template import (
-    PROMPT_SAQ_HINT_TEMPLATES, )
+    PROMPT_NI_HINT_TEMPLATES, )
 
-DISTANCE_SAQ_TEMPLATES = [
+DISTANCE_NI_TEMPLATES = [
     'Can you estimate the distance between the <OBJ1> and <OBJ2> in the room in meters? ',
     'Can you calculate the distance between the <OBJ1> and <OBJ2> in the room in meters? ',
     'Please estimate the distance between the <OBJ1> and <OBJ2> in the room in meters. ',
@@ -15,10 +15,10 @@ DISTANCE_SAQ_TEMPLATES = [
 ]
 
 
-class DistanceSAQGenerator(SAQMixin, DualObjectsCandidateMixin):
+class DistanceNIGenerator(NumericalInferenceMixin, DualObjectsCandidateMixin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.question_type = 'RULE-distance-SAQ'
+        self.question_type = 'RULE-distance-NI'
         self.allow_repeated_inst1s = False
         self.allow_repeated_inst2s = False
 
@@ -28,7 +28,7 @@ class DistanceSAQGenerator(SAQMixin, DualObjectsCandidateMixin):
 
         # prepare the main proposition text
         base_prompt_text = (
-            random.choice(DISTANCE_SAQ_TEMPLATES)
+            random.choice(DISTANCE_NI_TEMPLATES)
             .replace('<OBJ1>', inst1.label)
             .replace('<OBJ2>', inst2.label)
         )
@@ -44,7 +44,7 @@ class DistanceSAQGenerator(SAQMixin, DualObjectsCandidateMixin):
                 },
                 'pairwise_distance': dist,
             },
-            'prompt': base_prompt_text + random.choice(PROMPT_SAQ_HINT_TEMPLATES),
+            'prompt': base_prompt_text + random.choice(PROMPT_NI_HINT_TEMPLATES),
             'caption': f'{round(dist, 3):.2f}',
             'ref_captions': [f'{round(dist, 3):.2f}'],
         }

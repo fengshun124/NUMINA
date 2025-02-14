@@ -8,8 +8,8 @@ from BenchmarkBuilder.LLM.base import LLMBasedQRewriter
 from BenchmarkBuilder.utils.io import parse_json_text
 
 
-class TFQRewriter(LLMBasedQRewriter):
-    """True/False question generator implementation"""
+class FactValidationRewriter(LLMBasedQRewriter):
+    """Fact validation (True/False question) generator implementation"""
 
     def __init__(
             self,
@@ -22,7 +22,7 @@ class TFQRewriter(LLMBasedQRewriter):
         # Call parent init with remaining kwargs
         super().__init__(
             question_json_file=kwargs['question_json_file'],
-            rewrite_question_type='LLM_rewrite-TFQ',
+            rewrite_question_type='LLM_rewrite-FV',
             llm_model=kwargs.get('llm_model', 'qwen2.5:72b'),
             llm_backend=kwargs.get('llm_backend', 'ollama'),
             output_path=kwargs.get('export_dir', './output/')

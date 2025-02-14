@@ -2,14 +2,14 @@ import random
 from typing import Dict, Any
 
 from BenchmarkBuilder.rule.base.base import (
-    SingleObjectCandidateMixin, SAQMixin
+    SingleObjectCandidateMixin, NumericalInferenceMixin
 )
 from BenchmarkBuilder.rule.base.template import (
-    PROMPT_SAQ_HINT_TEMPLATES, PROMPT_SAQ_CoT_HINT_TEMPLATE,
+    PROMPT_NI_HINT_TEMPLATES, PROMPT_NI_CoT_HINT_TEMPLATE,
 )
 from BenchmarkBuilder.utils.scene import SceneInstance
 
-VOLUME_SAQ_TEMPLATES = [
+VOLUME_NI_TEMPLATES = [
     'Can you calculate the volume of the bounding box of <OBJ> in cubic meters? ',
     'Can you estimate the volume of the bounding box of <OBJ> in cubic meters? ',
     'Please calculate the volume of the bounding box of <OBJ> in cubic meters. ',
@@ -17,16 +17,16 @@ VOLUME_SAQ_TEMPLATES = [
     'What is the volume of the bounding box of <OBJ> in cubic meters? '
 ]
 
-VOLUME_SAQ_CoT_CAPTION_TEMPLATE = """Given the bounding box dimensions of the object along the X, Y, and Z axes
+VOLUME_NI_CoT_CAPTION_TEMPLATE = """Given the bounding box dimensions of the object along the X, Y, and Z axes
 as <BBOX_X_LEN> m, <BBOX_Y_LEN> m, and <BBOX_Z_LEN> m respectively,
 the volume of the bounding box is calculated as (length x width x height) yielding approximately
 <<ANSWER>> cubic meters."""
 
 
-class VolumeSAQGenerator(SAQMixin, SingleObjectCandidateMixin):
+class VolumeNIGenerator(NumericalInferenceMixin, SingleObjectCandidateMixin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.question_type = 'RULE-volume-SAQ'
+        self.question_type = 'RULE-volume-NI'
         self.allow_repeated_objects = False
 
     @staticmethod
@@ -45,7 +45,7 @@ class VolumeSAQGenerator(SAQMixin, SingleObjectCandidateMixin):
 
         # prepare the main proposition text
         base_prompt_text = (
-            random.choice(VOLUME_SAQ_TEMPLATES)
+            random.choice(VOLUME_NI_TEMPLATES)
             .replace('<OBJ>', label)
         )
 
@@ -59,11 +59,11 @@ class VolumeSAQGenerator(SAQMixin, SingleObjectCandidateMixin):
                 'bbox_xyz_len': instance.bbox_xyz_len,
                 'bbox_volume': instance.bbox_volume,
             },
-            'prompt': base_prompt_text + random.choice(PROMPT_SAQ_HINT_TEMPLATES),
-            'CoT_prompt': base_prompt_text + PROMPT_SAQ_CoT_HINT_TEMPLATE,
+            'prompt': base_prompt_text + random.choice(PROMPT_NI_HINT_TEMPLATES),
+            'CoT_prompt': base_prompt_text + PROMPT_NI_CoT_HINT_TEMPLATE,
             'caption': f'{round(instance.bbox_volume, 3):.2f}',
             'CoT_caption': (
-                VOLUME_SAQ_CoT_CAPTION_TEMPLATE
+                VOLUME_NI_CoT_CAPTION_TEMPLATE
                 .replace('<BBOX_X_LEN>', f'{round(instance.bbox_xyz_len[0], 3):.2f}')
                 .replace('<BBOX_Y_LEN>', f'{round(instance.bbox_xyz_len[1], 3):.2f}')
                 .replace('<BBOX_Z_LEN>', f'{round(instance.bbox_xyz_len[2], 3):.2f}')

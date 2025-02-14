@@ -2,16 +2,16 @@ import random
 from typing import Dict, Any, List, Tuple
 
 from BenchmarkBuilder.rule.base.base import (
-    DualObjectsCandidateMixin, TFQMixin
+    DualObjectsCandidateMixin, FactValidationMixin
 )
 from BenchmarkBuilder.rule.base.template import (
-    PROMPT_TFQ_HINT_TEMPLATES,
-    PROMPT_TFQ_CoT_HINT_TEMPLATE,
-    CAPTION_TFQ_AFFIRMATIVES,
-    CAPTION_TFQ_NEGATIVES,
+    PROMPT_FV_HINT_TEMPLATES,
+    PROMPT_FV_CoT_HINT_TEMPLATE,
+    CAPTION_FV_AFFIRMATIVES,
+    CAPTION_FV_NEGATIVES,
 )
 
-COUNT_COMPARE_TFQ_RELATION_DICT = {
+QUANTITY_COMPARE_FV_RELATION_DICT = {
     '>': {
         'func': lambda x, y: x > y,
         'text': 'greater than',
@@ -76,15 +76,15 @@ COUNT_COMPARE_TFQ_RELATION_DICT = {
     },
 }
 
-COUNT_COMPARE_TFQ_CoT_CAPTION_TEMPLATE = """Given the count of <OBJ1> as <OBJ1_COUNT> and the count of <OBJ2> as <OBJ2_COUNT>,
+QUANTITY_COMPARE_FV_CoT_CAPTION_TEMPLATE = """Given the count of <OBJ1> as <OBJ1_COUNT> and the count of <OBJ2> as <OBJ2_COUNT>,
 the count of <OBJ1> is <BOOLEAN> <RELATION> the count of <OBJ2>.
 Therefore, the answer is <<ANSWER>>"""
 
 
-class CountCompareTFQGenerator(TFQMixin, DualObjectsCandidateMixin):
+class QuantityCompareFVGenerator(FactValidationMixin, DualObjectsCandidateMixin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.question_type = 'RULE-count_compare-TFQ'
+        self.question_type = 'RULE-count_compare-FV'
         self.allow_repeated_inst1s = True
         self.allow_repeated_inst2s = True
 
@@ -107,33 +107,33 @@ class CountCompareTFQGenerator(TFQMixin, DualObjectsCandidateMixin):
 
         # find all relations that yield the intended boolean
         valid_relations = [
-            rel for rel, info in COUNT_COMPARE_TFQ_RELATION_DICT.items()
+            rel for rel, info in QUANTITY_COMPARE_FV_RELATION_DICT.items()
             if info['func'](label1_inst_count, label2_inst_count) == preset_boolean
         ]
         if valid_relations:
             relation = random.choice(valid_relations)
         else:
             # fallback to a random relation and then swap with its contrapositive
-            relation = random.choice(list(COUNT_COMPARE_TFQ_RELATION_DICT.keys()))
-            if COUNT_COMPARE_TFQ_RELATION_DICT[relation]['func'](
+            relation = random.choice(list(QUANTITY_COMPARE_FV_RELATION_DICT.keys()))
+            if QUANTITY_COMPARE_FV_RELATION_DICT[relation]['func'](
                     label1_inst_count, label2_inst_count) != preset_boolean:
-                relation = COUNT_COMPARE_TFQ_RELATION_DICT[relation]['contrapositive']
+                relation = QUANTITY_COMPARE_FV_RELATION_DICT[relation]['contrapositive']
 
         # determine the contrapositive relation for the proposition
-        contrapositive_relation = COUNT_COMPARE_TFQ_RELATION_DICT[relation]['contrapositive']
+        contrapositive_relation = QUANTITY_COMPARE_FV_RELATION_DICT[relation]['contrapositive']
 
         # prepare the main proposition text
         base_prompt_text = (
-            random.choice(COUNT_COMPARE_TFQ_RELATION_DICT[relation]['templates'])
+            random.choice(QUANTITY_COMPARE_FV_RELATION_DICT[relation]['templates'])
             .replace('<OBJ1>', label1)
             .replace('<OBJ2>', label2)
         )
         prompt_caption = 'yes' if preset_boolean else 'no'
-        base_prompt_suffix_text = random.choice(PROMPT_TFQ_HINT_TEMPLATES)
+        base_prompt_suffix_text = random.choice(PROMPT_FV_HINT_TEMPLATES)
 
         # prepare the contrapositive proposition text
         cp_base_prompt_text = (
-            random.choice(COUNT_COMPARE_TFQ_RELATION_DICT[contrapositive_relation]['templates'])
+            random.choice(QUANTITY_COMPARE_FV_RELATION_DICT[contrapositive_relation]['templates'])
             .replace('<OBJ1>', label1)
             .replace('<OBJ2>', label2)
         )
@@ -141,14 +141,14 @@ class CountCompareTFQGenerator(TFQMixin, DualObjectsCandidateMixin):
 
         # build the chain-of-thought texts
         chain_of_thought_base_text = (
-            COUNT_COMPARE_TFQ_CoT_CAPTION_TEMPLATE
+            QUANTITY_COMPARE_FV_CoT_CAPTION_TEMPLATE
             .replace('<OBJ1>', label1)
             .replace('<OBJ2>', label2)
             .replace('<OBJ1_COUNT>', str(label1_inst_count))
             .replace('<OBJ2_COUNT>', str(label2_inst_count))
             .replace('\n', ' ')
         )
-        chain_of_thought_prompt_suffix_text = PROMPT_TFQ_CoT_HINT_TEMPLATE
+        chain_of_thought_prompt_suffix_text = PROMPT_FV_CoT_HINT_TEMPLATE
 
         return {
             'meta': {
@@ -172,20 +172,20 @@ class CountCompareTFQGenerator(TFQMixin, DualObjectsCandidateMixin):
             'caption': prompt_caption,
             'CoT_caption': (
                 chain_of_thought_base_text
-                .replace('<RELATION>', COUNT_COMPARE_TFQ_RELATION_DICT[relation]['text'])
+                .replace('<RELATION>', QUANTITY_COMPARE_FV_RELATION_DICT[relation]['text'])
                 .replace('<BOOLEAN>', '' if preset_boolean else 'not')
                 .replace('<ANSWER>', prompt_caption)
             ),
-            'ref_captions': CAPTION_TFQ_AFFIRMATIVES if preset_boolean else CAPTION_TFQ_NEGATIVES,
+            'ref_captions': CAPTION_FV_AFFIRMATIVES if preset_boolean else CAPTION_FV_NEGATIVES,
 
             'cp_prompt': cp_base_prompt_text + base_prompt_suffix_text,
             'cp_CoT_prompt': cp_base_prompt_text + chain_of_thought_prompt_suffix_text,
             'cp_caption': cp_prompt_caption,
             'cp_CoT_caption': (
                 chain_of_thought_base_text
-                .replace('<RELATION>', COUNT_COMPARE_TFQ_RELATION_DICT[contrapositive_relation]['text'])
+                .replace('<RELATION>', QUANTITY_COMPARE_FV_RELATION_DICT[contrapositive_relation]['text'])
                 .replace('<BOOLEAN>', '' if not preset_boolean else 'not')
                 .replace('<ANSWER>', cp_prompt_caption)
             ),
-            'cp_ref_captions': CAPTION_TFQ_AFFIRMATIVES if not preset_boolean else CAPTION_TFQ_NEGATIVES,
+            'cp_ref_captions': CAPTION_FV_AFFIRMATIVES if not preset_boolean else CAPTION_FV_NEGATIVES,
         }

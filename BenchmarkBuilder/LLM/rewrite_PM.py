@@ -10,8 +10,8 @@ from BenchmarkBuilder.LLM.base import LLMBasedQRewriter
 from BenchmarkBuilder.utils.io import parse_json_text
 
 
-class MCQRewriter(LLMBasedQRewriter):
-    """Multiple-choice question generator implementation"""
+class PromptMatchingRewriter(LLMBasedQRewriter):
+    """Prompt matching (multiple-choice question) generator implementation"""
 
     def __init__(
             self,
@@ -28,7 +28,7 @@ class MCQRewriter(LLMBasedQRewriter):
         # Call parent init with remaining kwargs
         super().__init__(
             question_json_file=kwargs['question_json_file'],
-            rewrite_question_type='LLM_rewrite-MCQ',
+            rewrite_question_type='LLM_rewrite-PM',
             llm_model=kwargs.get('llm_model', 'qwen2.5:72b'),
             llm_backend=kwargs.get('llm_backend', 'ollama'),
             output_path=kwargs.get('export_dir', './output/')

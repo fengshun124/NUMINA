@@ -2,13 +2,13 @@ import random
 from typing import List, Dict, Any
 
 from BenchmarkBuilder.rule.base.base import (
-    SingleObjectCandidateMixin, SAQMixin
+    SingleObjectCandidateMixin, NumericalInferenceMixin
 )
 from BenchmarkBuilder.rule.base.template import (
-    PROMPT_SAQ_HINT_TEMPLATES,
+    PROMPT_NI_HINT_TEMPLATES,
 )
 
-COUNT_SAQ_TEMPLATES = [
+COUNT_NI_TEMPLATES = [
     'Can you count the number of <OBJ> in the room? ',
     'Can you count the <OBJ> in the room? ',
     'Can you tell me how many <OBJ> there are in the room? ',
@@ -21,10 +21,10 @@ COUNT_SAQ_TEMPLATES = [
 ]
 
 
-class CountSAQGenerator(SAQMixin, SingleObjectCandidateMixin):
+class QuantityNIGenerator(NumericalInferenceMixin, SingleObjectCandidateMixin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.question_type = 'RULE-count-SAQ'
+        self.question_type = 'RULE-count-NI'
         self.allow_repeated_objects = True
 
     def _get_candidates(self) -> List[str]:
@@ -43,9 +43,9 @@ class CountSAQGenerator(SAQMixin, SingleObjectCandidateMixin):
                 'obj_ids': [inst.object_id for inst in instances],
             },
             'prompt': (
-                    random.choice(COUNT_SAQ_TEMPLATES)
+                    random.choice(COUNT_NI_TEMPLATES)
                     .replace('<OBJ>', label)
-                    + random.choice(PROMPT_SAQ_HINT_TEMPLATES)
+                    + random.choice(PROMPT_NI_HINT_TEMPLATES)
             ),
             'caption': str(obj_count),
             'ref_captions': [obj_count],

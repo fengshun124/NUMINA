@@ -234,10 +234,10 @@ class DualObjectPairsCandidateMixin(RuleBasedQGen, ABC):
         ]
 
 
-class TFQMixin(RuleBasedQGen, ABC):
+class FactValidationMixin(RuleBasedQGen, ABC):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.question_type = 'TFQ'
+        self.question_type = 'FV'
 
     @staticmethod
     def _get_preset_booleans(
@@ -272,10 +272,10 @@ class TFQMixin(RuleBasedQGen, ABC):
         self._export_question_dicts(q_dicts)
 
 
-class SAQMixin(RuleBasedQGen, ABC):
+class NumericalInferenceMixin(RuleBasedQGen, ABC):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.question_type = 'NUM-SAQ'
+        self.question_type = 'NI'
 
     def generate(
             self,
