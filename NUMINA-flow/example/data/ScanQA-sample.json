@@ -1,0 +1,20 @@
+[
+    {
+        "scene_id": "scene0001_00",
+        "obj_id": 10,
+        "prompt": "How many brown chairs are on the right and left of the brown couch? Answer the question using a single word or phrase.",
+        "caption": "2 couches."
+    },
+    {
+        "scene_id": "scene0001_00",
+        "obj_id": 5,
+        "prompt": "The brown couch is right next to what? Answer the question using a single word or phrase.",
+        "caption": "Tables."
+    },
+    {
+        "scene_id": "scene0001_00",
+        "obj_id": 5,
+        "prompt": "The couch is on the right of what? Answer the question using a single word or phrase.",
+        "caption": "Tables."
+    }
+]
