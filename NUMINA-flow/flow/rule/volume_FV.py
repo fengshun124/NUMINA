@@ -91,11 +91,11 @@ class VolumeCompareFVGenerator(FactValidationMixin, DualObjectsCandidateMixin):
 
     @staticmethod
     def _custom_instance_filter(instance: SceneInstance) -> bool:
-        # filter those with size less than 0.01 cubic meters
+        # filter those with size less than 0.02 cubic meters
         if instance.bbox_volume < 0.02:
             return False
         # filter those with one dimension significantly smaller than the other two
-        if min(instance.bbox_xyz_len) / max(instance.bbox_xyz_len) > .2:
+        if min(instance.bbox_xyz_len) / max(instance.bbox_xyz_len) < 0.2:
             return False
         return True
 
