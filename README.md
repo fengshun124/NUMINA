@@ -3,7 +3,7 @@
 > We introduce **NUMINA**, the first benchmark focusing on multi-dimensional intelligence and fine-grained numerical reasoning in 3D multimodal environments.
 
 
-## 📜 Abstract
+## 📝 Abstract
 Recent advancements in 2D multimodal large language models (MLLMs) have significantly improved performance in vision-language tasks. However, extending these capabilities to 3D environments remains distinct challenges due to the complexity of spatial reasoning. Nevertheless, existing 3D benchmarks often lack fine-grained numerical reasoning task annotations, limiting MLLMs' ability to perform precise spatial measurements and complex numerical reasoning. To address this gap, we introduce **NUMINA**, the first **N**atural **U**nderstanding benchmark for **M**ulti-dimensional **I**ntelligence and **N**umerical reasoning **A**bilities to enhance multimodal indoor perceptual understanding. **NUMINA** features multi-scale annotations and various question-answer pairs, generated using **NUMINA-Flow**, an automated annotation pipeline that integrates LLM rewriting and rule-based self-verification. We evaluate the performance of various state-of-the-art LLMs on **NUMINA** following the Chat-Scene framework, demonstrating that current LLMs struggle with multimodal numerical reasoning, particularly in performing precise computations such as distance and volume estimation, highlighting the need for further advancements in 3D models.
 
 <p align="center">
