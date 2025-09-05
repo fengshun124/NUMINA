@@ -14,7 +14,7 @@ Recent advancements in 2D multimodal large language models (MLLMs) have signific
 
 ## 📰 News
 - **2025.09** Code released. Reproducible baselines available with unified evaluation.  
-- **2025.07** Our paper *NUMINA: A Natural Understanding Benchmark for Multi-dimensional Intelligence and Numerical Reasoning Abilities* was accepted at *Findings of EMNLP 2025*.
+- **2025.08** Our paper *NUMINA: A Natural Understanding Benchmark for Multi-dimensional Intelligence and Numerical Reasoning Abilities* was accepted at *Findings of EMNLP 2025*.
 
 ---
 
