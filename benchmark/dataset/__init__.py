@@ -5,7 +5,7 @@ from torchvision.transforms import InterpolationMode
 
 from dataset.dataloader import MetaLoader
 from dataset.dataset_train import TrainDataset, TrainDataset_CoT, TrainDataset_ls
-from dataset.dataset_val import ValDataset
+from dataset.dataset_val import ValDataset, ValDataset_cot, ValDataset_ls
 
 import logging
 logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ def create_dataset_cot(config):
         if type(v[0]) != list:
             v = [v]
         for val_file in v:
-            datasets.append(ValDataset(ann_list=val_file, dataset_name=k, config=config))
+            datasets.append(ValDataset_cot(ann_list=val_file, dataset_name=k, config=config))
         dataset = ConcatDataset(datasets)
         val_datasets.append(dataset)
 
@@ -111,7 +111,7 @@ def create_dataset_ls(config):
         if type(v[0]) != list:
             v = [v]
         for val_file in v:
-            datasets.append(ValDataset(ann_list=val_file, dataset_name=k, config=config))
+            datasets.append(ValDataset_ls(ann_list=val_file, dataset_name=k, config=config))
         dataset = ConcatDataset(datasets)
         val_datasets.append(dataset)
 

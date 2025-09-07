@@ -1,17 +1,22 @@
-import json
 import logging
 import os
-import random
+import json
 
+import numpy as np
 import torch
+
 from dataset.base_dataset import BaseDataset, update_caption
+import glob
+import random
 from prompts.prompts import obj_caption_wid_prompt
 from torch.nn.utils.rnn import pad_sequence
 
 logger = logging.getLogger(__name__)
 
 
+
 class TrainDataset(BaseDataset):
+
     cached_feats = {}
 
     def __init__(self, ann_list, config, **kwargs):
@@ -28,7 +33,7 @@ class TrainDataset(BaseDataset):
             sample_ratio = ann_list[-1]
             if sample_ratio < 1:
                 self.anno = random.sample(self.anno, int(sample_ratio * len(self.anno)))
-
+        
         if feat_file in TrainDataset.cached_feats and img_feat_file in TrainDataset.cached_feats:
             self.scene_feats, self.scene_masks = TrainDataset.cached_feats[feat_file]
             self.scene_img_feats = TrainDataset.cached_feats[img_feat_file]
@@ -49,13 +54,14 @@ class TrainDataset(BaseDataset):
             TrainDataset.cached_feats[feat_file] = (self.scene_feats, self.scene_masks)
             TrainDataset.cached_feats[img_feat_file] = self.scene_img_feats
 
+
     def __len__(self):
         return len(self.anno)
 
     def __getitem__(self, index):
         if self.attributes is not None and self.anno[index]['scene_id'] not in self.attributes:
             # print(f"{self.anno[index]['scene_id']} not in attribute file!")
-            return self.__getitem__(random.randint(0, len(self.anno) - 1))
+            return self.__getitem__(random.randint(0, len(self.anno)-1))
         if "obj_id" in self.anno[index]:
             obj_id = int(self.anno[index]["obj_id"])
         else:
@@ -97,6 +103,7 @@ def train_collate_fn(batch):
     }
 
 
+
 class TrainDataset_CoT(BaseDataset):
     '''
     Replace prompt with CoT_prompt and caption with CoT_caption.
@@ -118,7 +125,7 @@ class TrainDataset_CoT(BaseDataset):
             sample_ratio = ann_list[-1]
             if sample_ratio < 1:
                 self.anno = random.sample(self.anno, int(sample_ratio * len(self.anno)))
-
+        
         if feat_file in TrainDataset.cached_feats and img_feat_file in TrainDataset.cached_feats:
             self.scene_feats, self.scene_masks = TrainDataset.cached_feats[feat_file]
             self.scene_img_feats = TrainDataset.cached_feats[img_feat_file]
@@ -139,13 +146,14 @@ class TrainDataset_CoT(BaseDataset):
             TrainDataset.cached_feats[feat_file] = (self.scene_feats, self.scene_masks)
             TrainDataset.cached_feats[img_feat_file] = self.scene_img_feats
 
+
     def __len__(self):
         return len(self.anno)
 
     def __getitem__(self, index):
         if self.attributes is not None and self.anno[index]['scene_id'] not in self.attributes:
             # print(f"{self.anno[index]['scene_id']} not in attribute file!")
-            return self.__getitem__(random.randint(0, len(self.anno) - 1))
+            return self.__getitem__(random.randint(0, len(self.anno)-1))
         if "obj_id" in self.anno[index]:
             obj_id = int(self.anno[index]["obj_id"])
         else:
@@ -159,6 +167,7 @@ class TrainDataset_CoT(BaseDataset):
         CoT_caption = update_caption(CoT_caption, assigned_ids)
         question = update_caption(question, assigned_ids)
         return scene_feat, scene_img_feat, scene_mask, scene_locs, obj_id, assigned_ids, CoT_caption, question
+    
 
 
 class TrainDataset_ls(BaseDataset):
@@ -182,7 +191,7 @@ class TrainDataset_ls(BaseDataset):
             sample_ratio = ann_list[-1]
             if sample_ratio < 1:
                 self.anno = random.sample(self.anno, int(sample_ratio * len(self.anno)))
-
+        
         if feat_file in TrainDataset.cached_feats and img_feat_file in TrainDataset.cached_feats:
             self.scene_feats, self.scene_masks = TrainDataset.cached_feats[feat_file]
             self.scene_img_feats = TrainDataset.cached_feats[img_feat_file]
@@ -203,13 +212,14 @@ class TrainDataset_ls(BaseDataset):
             TrainDataset.cached_feats[feat_file] = (self.scene_feats, self.scene_masks)
             TrainDataset.cached_feats[img_feat_file] = self.scene_img_feats
 
+
     def __len__(self):
         return len(self.anno)
 
     def __getitem__(self, index):
         if self.attributes is not None and self.anno[index]['scene_id'] not in self.attributes:
             # print(f"{self.anno[index]['scene_id']} not in attribute file!")
-            return self.__getitem__(random.randint(0, len(self.anno) - 1))
+            return self.__getitem__(random.randint(0, len(self.anno)-1))
         if "obj_id" in self.anno[index]:
             obj_id = int(self.anno[index]["obj_id"])
         else:
@@ -223,3 +233,4 @@ class TrainDataset_ls(BaseDataset):
         cp_caption = update_caption(cp_caption, assigned_ids)
         question = update_caption(question, assigned_ids)
         return scene_feat, scene_img_feat, scene_mask, scene_locs, obj_id, assigned_ids, cp_caption, question
+    
