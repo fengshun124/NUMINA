@@ -28,11 +28,19 @@ Recent advancements in 2D multimodal large language models (MLLMs) have signific
 
 ---
 
+## 🔨 Preparation
+
+- Please download the used LLM backbones (e.g. [Vicuna](https://huggingface.co/lmsys/vicuna-7b-v1.5), [Phi](https://huggingface.co/microsoft/phi-4), [Mistral](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3), [Qwen](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct)) in [HuggingFace](https://huggingface.co/).
+- Change the "llama_model_path" in [run_numina.sh](benchmark/scripts/run_numina.sh) to the path of downloaded LLM path.
+- Please download the offical NUMINA dataset from the [release](https://github.com/fengshun124/NUMINA/releases/)
+---
+
+
 ## ⚙️ Installation
 
 ```bash
 # Clone the repo
-git clone https://github.com/fengshun124/NUMINA.git
+git clone --depth 1 https://github.com/fengshun124/NUMINA.git
 cd NUMINA
 
 # Create environment
@@ -45,11 +53,7 @@ pip install -r benchmark/requirements.txt
 
 ---
 
-## 🔨 Preparation
 
-- Please download the used LLM backbones (e.g. [Vicuna](https://huggingface.co/lmsys/vicuna-7b-v1.5), [Phi](https://huggingface.co/microsoft/phi-4), [Mistral](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3), [Qwen](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct)) in [HuggingFace](https://huggingface.co/).
-- Change the "llama_model_path" in [run_numina.sh](benchmark/scripts/run_numina.sh) to the path of downloaded LLM path.
----
 
 ## 🧠 Training & Evaluation
 
