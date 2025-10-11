@@ -68,11 +68,11 @@ python benchmark/scripts/run_numina.sh
 If you use NUMINA, please cite our paper:
 
 ```bibtex
-@inproceedings{numina-emnlp-findings-2025,
-  title   = {NUMINA: A Natural Understanding Benchmark for Multi-dimensional Intelligence and Numerical Reasoning Abilities},
-  author  = {Changyu Zeng, Yifan Wang, Zimu Wang, Wei Wang, Zhengni Yang, Muyi Bao, Jiming Xiao, Ahn Nguyen, Yutao Yue},
-  booktitle = {Findings of the Association for Computational Linguistics: EMNLP 2025},
-  year    = {2025}
+@article{zeng2025numina,
+  title={NUMINA: A Natural Understanding Benchmark for Multi-dimensional Intelligence and Numerical Reasoning Abilities},
+  author={Zeng, Changyu and Wang, Yifan and Wang, Zimu and Wang, Wei and Yang, Zhengni and Bao, Muyi and Xiao, Jiming and Nguyen, Ahn and Yue, Yutao},
+  journal={arXiv preprint arXiv:2509.16656},
+  year={2025}
 }
 ```
 
