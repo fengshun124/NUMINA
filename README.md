@@ -4,7 +4,12 @@
 
 
 ## 📝 Abstract
-Recent advancements in 2D multimodal large language models (MLLMs) have significantly improved performance in vision-language tasks. However, extending these capabilities to 3D environments remains distinct challenges due to the complexity of spatial reasoning. Nevertheless, existing 3D benchmarks often lack fine-grained numerical reasoning task annotations, limiting MLLMs' ability to perform precise spatial measurements and complex numerical reasoning. To address this gap, we introduce **NUMINA**, the first **N**atural **U**nderstanding benchmark for **M**ulti-dimensional **I**ntelligence and **N**umerical reasoning **A**bilities to enhance multimodal indoor perceptual understanding. **NUMINA** features multi-scale annotations and various question-answer pairs, generated using **NUMINA-Flow**, an automated annotation pipeline that integrates LLM rewriting and rule-based self-verification. We evaluate the performance of various state-of-the-art LLMs on **NUMINA** following the Chat-Scene framework, demonstrating that current LLMs struggle with multimodal numerical reasoning, particularly in performing precise computations such as distance and volume estimation, highlighting the need for further advancements in 3D models.
+Recent advancements in 2D multimodal large language models (MLLMs) have significantly improved performance in vision-language tasks. 
+However, extending these capabilities to 3D environments remains distinct challenges due to the complexity of spatial reasoning. 
+Nevertheless, existing 3D benchmarks often lack fine-grained numerical reasoning task annotations, limiting MLLMs' ability to perform precise spatial measurements and complex numerical reasoning. 
+To address this gap, we introduce **NUMINA**, the first **N**atural **U**nderstanding benchmark for **M**ulti-dimensional **I**ntelligence and **N**umerical reasoning **A**bilities to enhance multimodal indoor perceptual understanding. 
+**NUMINA** features multi-scale annotations and various question-answer pairs, generated using **NUMINA-Flow**, an automated annotation pipeline that integrates LLM rewriting and rule-based self-verification. 
+We evaluate the performance of various state-of-the-art LLMs on **NUMINA** following the Chat-Scene framework, demonstrating that current LLMs struggle with multimodal numerical reasoning, particularly in performing precise computations such as distance and volume estimation, highlighting the need for further advancements in 3D models.
 
 <p align="center">
   <img src="statistic.jpg" width="70%"/>
@@ -13,6 +18,7 @@ Recent advancements in 2D multimodal large language models (MLLMs) have signific
 ---
 
 ## 📰 News
+- **2025.10** Our paper is now available on [arXiv](https://arxiv.org/abs/2509.16656), and the dataset is live on [Hugging Face](https://huggingface.co/datasets/fengshun124/NUMINA).
 - **2025.09** Code released. Reproducible baselines available with unified evaluation.  
 - **2025.08** Our paper *NUMINA: A Natural Understanding Benchmark for Multi-dimensional Intelligence and Numerical Reasoning Abilities* was accepted at *Findings of EMNLP 2025*.
 
@@ -32,9 +38,15 @@ Recent advancements in 2D multimodal large language models (MLLMs) have signific
 
 - Please download the used LLM backbones (e.g. [Vicuna](https://huggingface.co/lmsys/vicuna-7b-v1.5), [Phi](https://huggingface.co/microsoft/phi-4), [Mistral](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3), [Qwen](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct)) in [HuggingFace](https://huggingface.co/).
 - Change the "llama_model_path" in [run_numina.sh](benchmark/scripts/run_numina.sh) to the path of downloaded LLM path.
-- Please download the offical NUMINA dataset from the [release](https://github.com/fengshun124/NUMINA/releases/)
----
+- Download the official NUMINA dataset from the GitHub [release](https://github.com/fengshun124/NUMINA/releases/) or directly from Hugging Face: [fengshun124/NUMINA](https://huggingface.co/datasets/fengshun124/NUMINA).
 
+```python
+# `pip install datasets` to use huggingface datasets library
+from datasets import load_dataset
+dataset = load_dataset("fengshun124/NUMINA")
+```
+
+---
 
 ## ⚙️ Installation
 
@@ -52,7 +64,6 @@ pip install -r benchmark/requirements.txt
 ```
 
 ---
-
 
 
 ## 🧠 Training & Evaluation
