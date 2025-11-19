@@ -18,7 +18,8 @@ We evaluate the performance of various state-of-the-art LLMs on **NUMINA** follo
 ---
 
 ## 📰 News
-- **2025.10** Our paper is now available on [arXiv](https://arxiv.org/abs/2509.16656), and the dataset is live on [Hugging Face](https://huggingface.co/datasets/fengshun124/NUMINA).
+- **2025.11** Our paper is now available on [ACL Anthology](https://aclanthology.org/2025.findings-emnlp.1229/).
+- **2025.10** Our paper is now available on [ArXiv](https://arxiv.org/abs/2509.16656), and the dataset is live on [Hugging Face](https://huggingface.co/datasets/fengshun124/NUMINA).
 - **2025.09** Code released. Reproducible baselines available with unified evaluation.  
 - **2025.08** Our paper *NUMINA: A Natural Understanding Benchmark for Multi-dimensional Intelligence and Numerical Reasoning Abilities* was accepted at *Findings of EMNLP 2025*.
 
